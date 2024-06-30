@@ -7,7 +7,7 @@ from ilastik.napari.filters import (FilterSet,
                                     HessianOfGaussianEigenvalues)
 import itertools
 import numpy as np
-from util_funcs import get_features_targets
+from seghub.util_funcs import get_features_targets
 
 # Define the filter set and scales
 FILTER_LIST = (Gaussian,

@@ -1,5 +1,5 @@
 import numpy as np
-from util_funcs import extract_batch_features_targets, reshape_patches_to_img, calculate_padding
+from seghub.util_funcs import extract_batch_features_targets, reshape_patches_to_img, calculate_padding
 from sklearn.ensemble import RandomForestClassifier
 from time import time
 
