@@ -2,14 +2,14 @@
 
 Welcome to seg hub. This is a toolbox for semantic segmentation in python. The main idea is to combine multiple ways of feature extraction with a random forest classifier (and possibly other classification algorithms such as kmeans). The idea of combining a convolutional neural network for feature extraction with a random forest classifier originates from Lucien Hinderling of the pertzlab at the University of Bern, where I did my Master Thesis.
 
-Please note that the intention behind seg_hub is not implement in fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
+Please note that the intention behind seg hub is not implement in fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
 
 **If you decide to use this tool or some of the code in any sort of public work, please do contact me and cite this repository. I would be excited.**
 
 ## Requirements
 
 ## Installation
-You can install seg_hub via pip using
+You can install seg hub via pip using
 
     pip install git+https://github.com/quasar1357/seg_hub.git
 
