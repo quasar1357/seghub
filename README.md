@@ -21,7 +21,7 @@ You can install seg hub via pip using
 
     pip install git+https://github.com/quasar1357/seg_hub.git
 
-After this, you can simply import the functions needed in Python (e.g. `from seghub.dino_utils import get_dinov2_feature_space`).
+After this, you can simply import the functions needed in Python, e.g. `from seghub.dino_utils import get_dinov2_feature_space`.
 
 ## Get started
 You can either directly use the various functions, e.g. to import per-patch features with the DINOv2 vision transformer use
