@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 
-def get_pca_features(features, num_components=3):
+def get_pca_features(features, num_components=2):
     '''
     Takes linear features or a feature space and returns the principal components of the features (normalized to 0-1).
     INPUT:
@@ -23,13 +23,12 @@ def get_pca_features(features, num_components=3):
         pc_normalized = pc_normalized.reshape(features.shape[0], features.shape[1], num_components)
     return pc_normalized
 
-def get_kmeans_clusters(features, num_clusters=4, img_shape=None):
+def get_kmeans_clusters(features, num_clusters=3):
     '''
     Takes linear features or a feature space and returns the cluster labels of the features.
     INPUT:
         features (np.ndarray): feature space, shape (H, W, F); or linear features, shape (H*W, F)
         num_clusters (int): number of clusters to use
-        img_shape (tuple): shape of the image. If given, reshapes the cluster labels to this shape
     OUTPUT:
         cluster_labels (np.ndarray): cluster labels. Shape (H*W), or (H, W) accoring to input features
     '''

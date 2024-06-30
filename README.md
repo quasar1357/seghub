@@ -8,11 +8,13 @@ Please note that the intention behind seg hub is not to develop fastest-possible
 
 ## Requirements
 
-You can find the requirements for this package in the [requirements.txt](./requirements.txt) file. As usual, you can install it with
+The requirements for this package can be found in the file [req.yml](./req.yml). As usual, you can create a conda environment with those packages with
 
-    pip install -r requirements.txt
+    conda env create -f req.yml
 
-We recommend to install the required packages into a fresh conda environment with a working installation of Python 3.
+After this, you can load the conda environment using `conda activate seghub_env`. 
+
+Note that the use of scikit-video requires a working installation of [ffmpeg](https://ffmpeg.org/). If this is not available, you can replace it by any other means to load videos as numpy arrays, or limit the analyses to images.
 
 ## Installation
 You can install seg hub via pip using

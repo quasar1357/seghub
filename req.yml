@@ -1,0 +1,21 @@
+name: seghub_env
+channels:
+  - conda-forge
+  - ilastik-forge
+dependencies:
+  - numpy=1.22.4
+  - pandas=2.2.0
+  - scikit-learn=1.4.0
+  - scikit-image=0.22.0
+  - scikit-video=1.1.11
+  - ilastik-napari
+  - fastfilters=0.2.4.post83
+  - matplotlib
+  - ipykernel=6.25.0
+  - pip
+  - pip:
+    - napari[all]
+    - git+https://github.com/guiwitz/napari-convpaint.git
+    - --extra-index-url https://download.pytorch.org/whl/cu117
+    - torch==1.13.1
+    - torchvision==0.14.1
