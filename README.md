@@ -4,6 +4,10 @@ Welcome to seghub. This is a toolbox for semantic segmentation in python. The ma
 
 ![seghub_concept](docs/seghub_concept.png)
 
+<p align="center">
+  <img src="./docs/seghub_concept.png" width="70%" />
+</p>
+
 Please note that the intention behind seghub is not to develop fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
 
 **If you decide to use this tool or some of the code in any sort of public work, please do contact me and cite this repository. I would be excited.**
