@@ -44,4 +44,4 @@ Please read carefully the detailed docstrings to get more information about the 
 The notebook [seghub_function_tests.ipynb](./notebooks/seghub_function_tests.ipynb) shows examples for using functions from the scripts mentioned above.
 
 ## Issues
-If you encounter any problems, I am grateful if you file an [issue](https://github.com/quasar1357/seg_hub/issues) along with a detailed description.
+If you encounter any problems, I am grateful if you file an [issue](https://github.com/quasar1357/seghub/issues) along with a detailed description.
