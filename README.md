@@ -19,7 +19,7 @@ Note that the use of scikit-video requires a working installation of [ffmpeg](ht
 ## Installation
 You can install seg hub via pip using
 
-    pip install git+https://github.com/quasar1357/seg_hub.git
+    pip install git+https://github.com/quasar1357/seghub.git
 
 After this, you can simply import the functions needed in Python, e.g. `from seghub.dino_utils import get_dinov2_feature_space`.
 
@@ -41,7 +41,7 @@ Please read carefully the detailed docstrings to get more information about the 
 - [util_funcs.py](./src/seghub/util_funcs.py): various utility functions used in the other scripts.
 
 ## Notebooks
-The notebook [seg_hub_function_tests.ipynb](./notebooks/seg_hub_function_tests.ipynb) shows examples for using functions from the scripts mentioned above.
+The notebook [seghub_function_tests.ipynb](./notebooks/seghub_function_tests.ipynb) shows examples for using functions from the scripts mentioned above.
 
 ## Issues
 If you encounter any problems, I am grateful if you file an [issue](https://github.com/quasar1357/seg_hub/issues) along with a detailed description.
