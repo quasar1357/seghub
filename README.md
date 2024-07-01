@@ -2,8 +2,6 @@
 
 Welcome to seghub. This is a toolbox for semantic segmentation in python. The main idea is to combine multiple ways of feature extraction with a random forest classifier (and possibly other classification algorithms such as kmeans). The idea of combining a convolutional neural network for feature extraction with a random forest classifier originates from Lucien Hinderling of the [pertzlab](https://www.pertzlab.net/) at the University of Bern, where I did my Master Thesis.
 
-![seghub_concept](docs/seghub_concept.png)
-
 <p align="center">
   <img src="./docs/seghub_concept.png" width="70%" />
 </p>
