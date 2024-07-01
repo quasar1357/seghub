@@ -1,8 +1,8 @@
-# seg hub
+# seghub
 
-Welcome to seg hub. This is a toolbox for semantic segmentation in python. The main idea is to combine multiple ways of feature extraction with a random forest classifier (and possibly other classification algorithms such as kmeans). The idea of combining a convolutional neural network for feature extraction with a random forest classifier originates from Lucien Hinderling of the [pertzlab](https://www.pertzlab.net/) at the University of Bern, where I did my Master Thesis.
+Welcome to seghub. This is a toolbox for semantic segmentation in python. The main idea is to combine multiple ways of feature extraction with a random forest classifier (and possibly other classification algorithms such as kmeans). The idea of combining a convolutional neural network for feature extraction with a random forest classifier originates from Lucien Hinderling of the [pertzlab](https://www.pertzlab.net/) at the University of Bern, where I did my Master Thesis.
 
-Please note that the intention behind seg hub is not to develop fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
+Please note that the intention behind seghub is not to develop fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
 
 **If you decide to use this tool or some of the code in any sort of public work, please do contact me and cite this repository. I would be excited.**
 
@@ -17,7 +17,7 @@ After this, you can load the conda environment using `conda activate seghub_env`
 Note that the use of scikit-video requires a working installation of [ffmpeg](https://ffmpeg.org/). If this is not available, you can replace it by any other means to load videos as numpy arrays, or limit the analyses to images.
 
 ## Installation
-You can install seg hub via pip using
+You can install seghub via pip using
 
     pip install git+https://github.com/quasar1357/seghub.git
 
