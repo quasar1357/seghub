@@ -47,7 +47,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     features = features[0]
     return features
 
-def extract_features_multichannel(image, dinov2_model='s'):
+def extract_features_multichannel(image, dinov2_model='s_r'):
     '''
     Takes an image with multiple channels and extracts features using a DINOv2 model.
     Treats each channel as an RGB image (copying it for R, G and B), extracts features separately, and concatenates them.
@@ -73,7 +73,7 @@ def extract_features_multichannel(image, dinov2_model='s'):
     features = np.concatenate(features_list, axis=1)
     return features
 
-def get_dinov2_patch_features(image, dinov2_model='s', rgb=True, pc=False):
+def get_dinov2_patch_features(image, dinov2_model='s_r', rgb=True, pc=False):
     '''
     Takes an image (padded to a multiple of patch size) and extracts features using a DINOv2 model.
     If the image has 3 channels and RGB is chosen, extract features as usual.
@@ -101,7 +101,7 @@ def get_dinov2_patch_features(image, dinov2_model='s', rgb=True, pc=False):
         dinov2_features = get_pca_features(dinov2_features, num_components=pc)    
     return dinov2_features
 
-def get_dinov2_feature_space(image, dinov2_model='s', rgb=True, pc=False, interpolate_features=False):
+def get_dinov2_feature_space(image, dinov2_model='s_r', rgb=True, pc=False, interpolate_features=False):
     '''
     Takes an image (padded to a multiple of patch size),
     extracts features using a DINOv2 model,
@@ -124,7 +124,7 @@ def get_dinov2_feature_space(image, dinov2_model='s', rgb=True, pc=False, interp
     feature_space_recrop = feature_space[:image.shape[0], :image.shape[1]]
     return feature_space_recrop
 
-def get_dinov2_pixel_features(image, dinov2_model='s', rgb=True, pc=False, interpolate_features=False):
+def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb=True, pc=False, interpolate_features=False):
     '''
     Takes an image (padded to a multiple of patch size),
     extracts features using a DINOv2 model,
@@ -146,7 +146,7 @@ def get_dinov2_pixel_features(image, dinov2_model='s', rgb=True, pc=False, inter
     pixel_features_flat = np.reshape(feature_space, (num_pix, num_features))
     return pixel_features_flat
 
-def get_dinov2_features_targets(image, labels, dinov2_model='s', rgb=True, pc=False, interpolate_features=False):
+def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb=True, pc=False, interpolate_features=False):
     '''
     Takes an image and labels, extracts features using a DINOv2 model,
     and returns the features of annotated pixels and their targets.
