@@ -8,9 +8,9 @@ Welcome to seghub. This is a toolbox for semantic segmentation in python. The ma
 
 Please note that the intention behind seghub is not to develop fastest-possible solutions. Much rather it shall be a set of tools and ways to explore and compare different approaches to semantic segmentation.
 
-Once you're here, also check out [scribbles_creator](https://github.com/quasar1357/scribbles_creator), a tool that I developed for my Master Thesis, which allows to sample manual-like scribbles annotations from a ground truth. This was used to test the segmentation performance of various feature extractors feeding a random forest classifier. However, it could be of great help in any scenario where different amounts and types of sparse annotations shall be used on large datasets.
+Once you're here, also check out [scribbles_creator](https://github.com/quasar1357/scribbles_creator), a tool that I developed for my Master Thesis. It allows to sample manual-like scribbles annotations from a ground truth, which was used to test the segmentation performance of various feature extractors feeding a random forest classifier. Importantly, it could be of great help in any scenario where different amounts and types of sparse annotations shall be used on large datasets.
 
-**If you decide to use this tool or some of the code in any sort of public work, please do contact me and cite this repository. I would be excited.**
+**If you decide to use tools of my repos or some of the code for any sort of public work, please quickly contact me and cite this repository. I would be excited.**
 
 ## Requirements
 
