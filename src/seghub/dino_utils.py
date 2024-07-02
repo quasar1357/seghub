@@ -34,7 +34,10 @@ def extract_features_rgb(image, dinov2_model='s_r'):
             'g_r': 'dinov2_vitg14_reg'}
     dinov2_name = models[dinov2_model]
     if dinov2_name not in loaded_dinov2_models:
-        loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2', dinov2_name, pretrained=True, verbose=False, force_reload=True)
+        try:
+            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2', dinov2_name, pretrained=True, verbose=False)
+        except RuntimeError:
+            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2', dinov2_name, pretrained=True, verbose=False, force_reload=True)
     model = loaded_dinov2_models[dinov2_name]
     model.eval()
     # Extract features
