@@ -7,7 +7,7 @@ from seghub.classif_utils import get_pca_features
 
 loaded_dinov2_models = {}
 
-def extract_features_rgb(image, dinov2_model='s'):
+def extract_features_rgb(image, dinov2_model='s_r'):
     '''
     Takes an RGB image and extracts features using a DINOv2 model.
     INPUT:
