@@ -14,7 +14,7 @@ Once you're here, also check out [scribbles_creator](https://github.com/quasar13
 
 ## Requirements
 
-The requirements for this package can be found in the file [req.yml](./req.yml). As usual, you can create a conda environment with those packages with
+The requirements for this package can be found in the file [req.yml](./req.yml). As usual, you can create a conda environment with those packages by calling
 
     conda env create -f req.yml
 
