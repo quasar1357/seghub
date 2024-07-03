@@ -7,8 +7,8 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
     '''
     Takes an image batch and a label batch, extracts features using the given function, and trains a random forest classifier.
     INPUT:
-        image_batch (list of np.ndarray): list of images. Each image has shape (H, W, C) or (H, W)
-        labels_batch (list of np.ndarray): list of labels. Each label has shape (H, W)
+        image_batch (list of np.ndarrays or np.ndarray): list/batch of images. Each image has shape (H, W, C) or (H, W)
+        labels_batch (list of np.ndarrays or np.ndarray): list/batch of labels. Each label has shape (H, W)
         features_func (function): function to extract features from an image
             must take an image of shape (H, W, C) or (H, W) and labels of shape (H, W)
             and return features of shape (n_annotated, n_features) and targets of shape (n_annotated) as first two elements
@@ -60,11 +60,11 @@ def predict_seg_forest_single_image(image, random_forest, features_func, feature
     
     return pred_img
 
-def predict_seg_forest(img_stack, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False):
+def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False):
     '''
-    Takes an image stack and a trained random forest classifier, extracts features using the given function, and predicts labels for all images.
+    Takes an image batch and a trained random forest classifier, extracts features using the given function, and predicts labels for all images.
     INPUT:
-        img_stack (np.ndarray): image stack to predict on. Shape (N, H, W, C)
+        image_batch (list of np.ndarrays or np.ndarray): list/batch of images to predict on. Each image has shape (H, W, C) or (H, W)
         random_forest (RandomForestClassifier): trained random forest classifier
         features_func (function): function to extract features from an image
             must take an image of shape (H, W, C) or (H, W)
@@ -78,16 +78,18 @@ def predict_seg_forest(img_stack, random_forest, features_func, features_cfg={},
         patch_size (tuple of int): size of the patches; must be given if pred_per_patch == True
         print_steps (bool): whether to print progress
     OUTPUT:
-        pred_stack (np.ndarray): predicted labels. Shape (N, H, W)
+        pred_batch (np.ndarray): predicted labels. Shape (N, H, W)
     '''
-    pred_stack = np.zeros(img_stack.shape[:3], dtype=np.uint8)
+    if type(img_batch) is list:
+        img_batch = np.array(img_batch)
+    pred_batch = np.zeros(img_batch.shape[:3], dtype=np.uint8)
     t_start = time()
-    for i, image in enumerate(img_stack):
+    for i, image in enumerate(img_batch):
         if print_steps:
-            est_t = f"{((time()-t_start)/(i))*(len(img_stack)-i):.1f} seconds" if i > 0 else "NA"
-            print(f'Predicting image {i+1}/{len(img_stack)} - estimated time left: {est_t}')
-        pred_stack[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size))
-    return pred_stack
+            est_t = f"{((time()-t_start)/(i))*(len(img_batch)-i):.1f} seconds" if i > 0 else "NA"
+            print(f'Predicting image {i+1}/{len(img_batch)} - estimated time left: {est_t}')
+        pred_batch[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size))
+    return pred_batch
 
 
 
