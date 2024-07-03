@@ -60,8 +60,8 @@ def extract_features_rgb(image, dinov2_model='s_r'):
 def extract_uni_features_rgb(image):
     '''
     Takes an RGB image and extracts features using the UNI model (for pathology).
-    NOTE: User must be logged in to huggingface and have access to the UNI model
-          use from huggingface_hub import login; and then login(hf_token)
+    NOTE: User must be logged in to huggingface and have access to the UNI model use:
+            from huggingface_hub import login; login(hf_token)
           where hf_token is your personal huggingface token found at https://huggingface.co/settings/tokens
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
@@ -161,12 +161,13 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb=True, pc=False, inte
     OUTPUT:
         features (np.ndarray): extracted features. Shape (H, W, F) where F is the number of features extracted
     '''
+    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
     patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb=rgb, pc=pc)
     # Recreate an image-sized feature space from the features
     patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
     vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=patch_size)
     padded_img_shape = (image.shape[0] + vertical_pad, image.shape[1] + horizontal_pad)
-    feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape, interpolation_order=interpolate_features)
+    feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape, patch_size=patch_size, interpolation_order=interpolate_features)
     feature_space_recrop = feature_space[:image.shape[0], :image.shape[1]]
     return feature_space_recrop
 
