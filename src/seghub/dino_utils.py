@@ -2,6 +2,7 @@ import numpy as np
 from skimage.transform import resize
 import torch
 from torchvision.transforms import ToTensor
+import timm
 from seghub.util_funcs import normalize_np_array, pad_to_patch, reshape_patches_to_img, get_features_targets, calculate_padding
 from seghub.classif_utils import get_pca_features
 
@@ -12,12 +13,18 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     Takes an RGB image and extracts features using a DINOv2 model.
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
-            Expects H and W to be multiples of patch size (=14x14)
+            Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
+                     'uni' = https://github.com/mahmoodlab/UNI
     OUTPUT:
-        features (np.ndarray): extracted features. Shape (H*W, F) where F is the number of features extracted
+        features (np.ndarray): extracted features. Shape (Hp*Wp, F)
+                               where F is the number of features extracted,
+                               and Hp and Wp are patches per height and width, respectively
     '''
+    if dinov2_model == 'uni':
+        return extract_uni_features_rgb(image)
+    
     trainset_mean, trainset_sd = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
     image = normalize_np_array(image, trainset_mean, trainset_sd, axis = (0,1))
     # Convert to tensor and add batch dimension
@@ -50,13 +57,47 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     features = features[0]
     return features
 
+def extract_uni_features_rgb(image):
+    '''
+    Takes an RGB image and extracts features using the UNI model (for pathology).
+    NOTE: User must be logged in to huggingface and have access to the UNI model
+          use from huggingface_hub import login; and then login(hf_token)
+          where hf_token is your personal huggingface token found at https://huggingface.co/settings/tokens
+    INPUT:
+        image (np.ndarray): RGB image. Shape (H, W, C) where C=3
+            Expects H and W to be multiples of patch size (=16x16)
+    OUTPUT:
+        features (np.ndarray): extracted features. Shape (Hp*Wp, F)
+                               where F is the number of features extracted,
+                               and Hp and Wp are patches per height and width, respectively
+    '''
+    trainset_mean, trainset_sd = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    image = normalize_np_array(image, trainset_mean, trainset_sd, axis = (0,1))
+    # Convert to tensor and add batch dimension
+    image_tensor = ToTensor()(image).float()
+    image_batch = image_tensor.unsqueeze(0)
+    # Load model
+    model = timm.create_model("hf-hub:MahmoodLab/uni", pretrained=True, init_values=1e-5, dynamic_img_size=True)
+    model.eval()
+    # Make sure image is on same device as model
+    device = next(model.parameters())[0].device
+    image_batch = image_batch.to(device)
+    # Extract features
+    with torch.inference_mode():
+        patch_embeddings = model.patch_embed(image_batch)
+    # Remove batch dimension and convert to numpy array
+    features = patch_embeddings.squeeze().numpy()
+    # Linearize (to be consistent with original DINOv2 output)
+    features = features.reshape(-1, features.shape[2])
+    return features
+
 def extract_features_multichannel(image, dinov2_model='s_r'):
     '''
     Takes an image with multiple channels and extracts features using a DINOv2 model.
     Treats each channel as an RGB image (copying it for R, G and B), extracts features separately, and concatenates them.
     INPUT:
         image (np.ndarray): image with multiple channels. Shape (H, W, C) or (H, W)
-            Expects H and W to be multiples of patch size (=14x14)
+            Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
     OUTPUT:
@@ -91,7 +132,8 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb=True, pc=False):
                                where F is the number of features extracted
                                and Hp and Wp are the number of patches per height and width
     '''
-    padded_image = pad_to_patch(image, "bottom", "right", patch_size=(14,14))
+    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
+    padded_image = pad_to_patch(image, "bottom", "right", patch_size=patch_size)
     # If the image has 3 channels and RGB is chosen, extract features as usual
     if len(padded_image.shape) == 3 and padded_image.shape[2] == 3 and rgb:
         dinov2_features = extract_features_rgb(padded_image, dinov2_model)
@@ -121,7 +163,8 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb=True, pc=False, inte
     '''
     patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb=rgb, pc=pc)
     # Recreate an image-sized feature space from the features
-    vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=(14,14))
+    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
+    vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=patch_size)
     padded_img_shape = (image.shape[0] + vertical_pad, image.shape[1] + horizontal_pad)
     feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape, interpolation_order=interpolate_features)
     feature_space_recrop = feature_space[:image.shape[0], :image.shape[1]]
