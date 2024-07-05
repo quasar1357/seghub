@@ -21,7 +21,9 @@ def get_convpaint_features_targets_model(image, labels, layer_list=[0], scalings
     if len(image.shape) == 3:
         image = np.moveaxis(image, -1, 0)
     # Normalize the image to ImageNet stats
-    image = (image - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
+    trainset_mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
+    trainset_sd = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
+    image = (image - trainset_mean) / trainset_sd
     # Define the model
     model = Hookmodel(model_name=model_name)
     # Ensure the layers are given as a list
@@ -55,7 +57,9 @@ def get_convpaint_feature_space(image, layer_list=[0], scalings=[1,2], model_nam
     if len(image.shape) == 3:
         image = np.moveaxis(image, -1, 0)
     # Normalize the image to ImageNet stats
-    image = (image - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
+    trainset_mean = np.array([0.485, 0.456, 0.406]).reshape(3, 1, 1)
+    trainset_sd = np.array([0.229, 0.224, 0.225]).reshape(3, 1, 1)
+    image = (image - trainset_mean) / trainset_sd
     # Define the model
     model = Hookmodel(model_name=model_name)
     # Ensure the layers are given as a list
