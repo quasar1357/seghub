@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='seghub',
-    version='0.0.1',
+    version='0.0.2',
     description='Tools for segmentation, with focus on combining variable feature extractors with a random forest classifier.',
     author='Roman Schwob',
     author_email='roman.schwob@students.unibe.ch',

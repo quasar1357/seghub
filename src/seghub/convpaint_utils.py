@@ -7,6 +7,7 @@ def get_convpaint_features_targets_model(image, labels, layer_list=[0], scalings
     Return the extracted features together with their targets and the model used for feature extraction.
     INPUT:
         image (np.ndarray): image to extract features from. Shape (H, W) or (H, W, C)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         labels (np.ndarray): labels for the image. Shape (H, W), same dimensions as image
         layer_list (list of int): list of layer indices to use for feature extraction with vgg16
         scalings (list of int): list of scalings to use for feature extraction with vgg16
@@ -16,8 +17,11 @@ def get_convpaint_features_targets_model(image, labels, layer_list=[0], scalings
         targets (np.ndarray): targets of annotated pixels. Shape (n_annotated)
         model (Hookmodel): model used for feature extraction
     '''
+    # Convpaint expects [C, H, W]
     if len(image.shape) == 3:
         image = np.moveaxis(image, -1, 0)
+    # Normalize the image to ImageNet stats
+    image = (image - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
     # Define the model
     model = Hookmodel(model_name=model_name)
     # Ensure the layers are given as a list
@@ -47,8 +51,11 @@ def get_convpaint_feature_space(image, layer_list=[0], scalings=[1,2], model_nam
     OUTPUTS:
         features (np.ndarray): extracted features. Shape (H, W, F)
     '''
+    # Convpaint expects [C, H, W]
     if len(image.shape) == 3:
         image = np.moveaxis(image, -1, 0)
+    # Normalize the image to ImageNet stats
+    image = (image - np.array([0.485, 0.456, 0.406])) / np.array([0.229, 0.224, 0.225])
     # Define the model
     model = Hookmodel(model_name=model_name)
     # Ensure the layers are given as a list

@@ -14,6 +14,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
             Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
                      'uni' = https://github.com/mahmoodlab/UNI
@@ -25,8 +26,10 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     if dinov2_model == 'uni':
         return extract_uni_features_rgb(image)
     
-    trainset_mean, trainset_sd = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    image = normalize_np_array(image, trainset_mean, trainset_sd, axis = (0,1))
+    # Normalize the image to ImageNet stats
+    trainset_mean = np.array([0.485, 0.456, 0.406]).reshape(1, 1, 3)
+    trainset_sd = np.array([0.229, 0.224, 0.225]).reshape(1, 1, 3)
+    image = (image - trainset_mean) / trainset_sd
     # Convert to tensor and add batch dimension
     image_tensor = ToTensor()(image).float()
     image_batch = image_tensor.unsqueeze(0)
@@ -66,13 +69,16 @@ def extract_uni_features_rgb(image):
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
             Expects H and W to be multiples of patch size (=16x16)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
     OUTPUT:
         features (np.ndarray): extracted features. Shape (Hp*Wp, F)
                                where F is the number of features extracted,
                                and Hp and Wp are patches per height and width, respectively
     '''
-    trainset_mean, trainset_sd = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    image = normalize_np_array(image, trainset_mean, trainset_sd, axis = (0,1))
+    # Normalize the image to ImageNet stats
+    trainset_mean = np.array([0.485, 0.456, 0.406]).reshape(1, 1, 3)
+    trainset_sd = np.array([0.229, 0.224, 0.225]).reshape(1, 1, 3)
+    image = (image - trainset_mean) / trainset_sd
     # Convert to tensor and add batch dimension
     image_tensor = ToTensor()(image).float()
     image_batch = image_tensor.unsqueeze(0)
@@ -98,6 +104,7 @@ def extract_features_multichannel(image, dinov2_model='s_r'):
     INPUT:
         image (np.ndarray): image with multiple channels. Shape (H, W, C) or (H, W)
             Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
     OUTPUT:
@@ -124,6 +131,7 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb=True, pc=False):
     Otherwise extract features for each channel and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
         rgb (bool): whether to treat a 3-channel image as RGB or not
@@ -155,6 +163,7 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb=True, pc=False, inte
     Otherwise extract features for each channel and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
         rgb (bool): whether to treat a 3-channel image as RGB or not
@@ -180,6 +189,7 @@ def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb=True, pc=False, int
     Otherwise extract features for each channel and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
         rgb (bool): whether to treat a 3-channel image as RGB or not
@@ -201,6 +211,7 @@ def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb=True, pc=
     Otherwise extract features for each channel and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
+            Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         labels (np.ndarray): labels. Shape (H, W)
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
