@@ -3,7 +3,7 @@ from skimage.transform import resize
 import torch
 from torchvision.transforms import ToTensor
 import timm
-from seghub.util_funcs import normalize_np_array, pad_to_patch, reshape_patches_to_img, get_features_targets, calculate_padding
+from seghub.util_funcs import pad_to_patch, reshape_patches_to_img, get_features_targets, calculate_padding
 from seghub.classif_utils import get_pca_features
 
 loaded_dinov2_models = {}

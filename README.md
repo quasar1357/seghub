@@ -40,7 +40,7 @@ Please read carefully the detailed docstrings to get more information about the 
 
 ## Scripts
 - [classif_utils.py](./src/seghub/classif_utils.py): functions for easy application of utilities that are helpful for classification, such as PCA and K-means.
-- [convpaint_utils.py](./src/seghub/convpaint_utils.py): functions for feature extraction using [convpaint](https://github.com/guiwitz/napari-convpaint/) with the convolutional neural network VGG16.
+- [vgg16_utils.py](./src/seghub/vgg16_utils.py): functions for feature extraction using [convpaint](https://github.com/guiwitz/napari-convpaint/) with the convolutional neural network VGG16.
 - [dino_utils.py](./src/seghub/dino_utils.py): functions for feature extraction using [DINOv2](https://github.com/facebookresearch/dinov2), a state-of-the-art vision transformer model.
 - [ilastik-utils.py](./src/seghub/ilastik-utils.py): functions for feature extraction using classical filterbanks implemented in the popular segmentation tool "[ilastik](https://www.ilastik.org/)".
 - [rf_utils.py](./src/seghub/rf_utils.py): wrapper functions to combine feature extraction with a random forest classifier from sklearn (train and predict models).

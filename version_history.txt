@@ -1,1 +1,2 @@
 0.0.2   fix normalization to ImageNet mean and std
+0.0.3	fix RGB handling in VGG16
