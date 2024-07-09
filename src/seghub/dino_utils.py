@@ -17,9 +17,6 @@ def preprocess_for_dinov2(image):
     OUTPUT:
         image_batch (torch.Tensor): preprocessed image. Shape (1, C, H, W)
     '''
-    # Check if image is in the range [0, 1]
-    if np.min(image) < 0 or np.max(image) > 1:
-        warnings.warn('Image is not in the range [0, 1]. Are you sure you pre-processed the image correctly?')
     # Normalize the image to ImageNet stats
     image = norm_for_imagenet(image)
     # Convert to tensor and add batch dimension

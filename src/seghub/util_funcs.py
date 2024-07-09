@@ -1,19 +1,22 @@
 import numpy as np
 from skimage.transform import resize
 from time import time
+import warnings
 
-def norm_for_imagenet(arr):
+def norm_for_imagenet(img_arr):
     '''
     Normalize array to ImageNet mean and standard deviation.
     INPUT:
-        arr (np.ndarray): array to normalize; shape (H, W, C) where C=3
+        img_arr (np.ndarray): array to normalize; shape (H, W, C) where C=3
     OUTPUT:
-        arr_norm (np.ndarray): normalized array; same shape as input
+        img_arr_norm (np.ndarray): normalized array; same shape as input
     '''
+    if np.min(img_arr) < 0 or np.max(img_arr) > 1:
+        warnings.warn('Image is not in the range [0, 1]. Are you sure you pre-processed the image correctly?')
     mean = np.array([0.485, 0.456, 0.406]).reshape(1, 1, 3)
     std = np.array([0.229, 0.224, 0.225]).reshape(1, 1, 3)
-    arr_norm = (arr - mean) / std
-    return arr_norm
+    img_arr_norm = (img_arr - mean) / std
+    return img_arr_norm
 
 def normalize_np_array(array, new_mean, new_sd, axis=(0,1)):
     '''

@@ -19,7 +19,7 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
     # Define a lambda function that creates a feature space using features_func,
     # and then extracts features and targets of annotated pixels using the helper function
     get_annot_features_targets = lambda image, labels, **features_cfg: get_features_targets(features_func(image, **features_cfg), labels)
-    # Extract features and targets for the entire batch
+    # Extract features and targets for the entire batch (but only of the annotated images and pixels)
     features_annot, targets = extract_batch_features_targets(image_batch, labels_batch, get_annot_features_targets, features_cfg, print_steps=print_steps)
     # Train the random forest classifier
     random_forest = RandomForestClassifier(n_estimators=100, random_state=random_state)

@@ -1,2 +1,3 @@
 0.0.2   fix normalization to ImageNet mean and std
 0.0.3	fix RGB handling in VGG16
+0.0.4	using only feature_space function for training (get features_annot and targets inside)
