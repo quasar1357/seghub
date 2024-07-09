@@ -1,5 +1,5 @@
 import numpy as np
-from seghub.util_funcs import extract_batch_features_targets, reshape_patches_to_img, calculate_padding
+from seghub.util_funcs import extract_batch_features_targets, reshape_patches_to_img, calculate_padding, get_features_targets
 from sklearn.ensemble import RandomForestClassifier
 from time import time
 
@@ -10,13 +10,18 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
         image_batch (list of np.ndarrays or np.ndarray): list/batch of images. Each image has shape (H, W, C) or (H, W)
         labels_batch (list of np.ndarrays or np.ndarray): list/batch of labels. Each label has shape (H, W)
         features_func (function): function to extract features from an image
-            must take an image of shape (H, W, C) or (H, W) and labels of shape (H, W)
-            and return features of shape (n_annotated, n_features) and targets of shape (n_annotated) as first two elements
+            must take an image of shape (H, W, C) or (H, W)
+            and return features of shape (H, W, n_features) (feature space)
         features_cfg (dict): configuration for the feature extraction function
     OUTPUT:
         random_forest (RandomForestClassifier): trained random forest classifier
     '''
-    features_annot, targets = extract_batch_features_targets(image_batch, labels_batch, features_func, features_cfg, print_steps=print_steps)
+    # Define a lambda function that creates a feature space using features_func,
+    # and then extracts features and targets of annotated pixels using the helper function
+    get_annot_features_targets = lambda image, labels, **features_cfg: get_features_targets(features_func(image, **features_cfg), labels)
+    # Extract features and targets for the entire batch
+    features_annot, targets = extract_batch_features_targets(image_batch, labels_batch, get_annot_features_targets, features_cfg, print_steps=print_steps)
+    # Train the random forest classifier
     random_forest = RandomForestClassifier(n_estimators=100, random_state=random_state)
     random_forest.fit(features_annot, targets)
     return random_forest
@@ -91,51 +96,30 @@ def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={},
         pred_batch[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size))
     return pred_batch
 
-
-
-
-# def selfpredict_seg_forest(image, labels, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14)):
-#     '''
-#     Takes an image and labels, extracts features using the given function, trains a random forest classifier
-#     based on the labels, and predicts labels for the entire image.
-#     INPUT:
-#         image (np.ndarray): image to predict on. Shape (H, W, C) or (H, W)
-#         labels (np.ndarray): labels for the image. Shape (H, W), same dimensions as image
-#         features_func (function): function to extract features from an image
-#             must take an image of shape (H, W, C) or (H, W)
-#             and return features of shape (H * W, n_features) --> pred_per_patch is None
-#                 OR (Hp*Wp, n_features) --> patch:resize_interpol is not None
-#         features_cfg (dict): configuration for the feature extraction function
-#         pred_per_patch (int): whether to predict per patch or per pixel
-#             If True, features_func must return per patch features (and patch_size must be given)
-#             If False, features_func must return per pixel features
-#         patch_size (tuple of int): size of the patches; must be given if pred_per_patch == True
-#     OUTPUT:
-#         pred_img (np.ndarray): predicted labels. Shape (H, W)
-#     '''
-#     # EXTRACT FEATURES
-#     padded_image = pad_to_patch(image, "bottom", "right", pad_mode=pad_mode, patch_size=(14,14))
-#     padded_labels = pad_to_patch(labels, "bottom", "right", pad_mode="constant", patch_size=(14,14))
-#     patch_features_flat = extract_features(padded_image, dinov2_model, rgb)
-#     num_features = patch_features_flat.shape[1]
-#     features_annot, targets = get_annot_features_and_targets(patch_features_flat, padded_labels, interpolate_features=interpolate_features)
-#     # TRAIN
-#     features_train, labels_train = features_annot, targets
-#     random_forest = RandomForestClassifier(n_estimators=100, random_state=random_state)
-#     random_forest.fit(features_train, labels_train)
-#     # PREDICT
-#     # If we want interpolated features, we reshape them to the image size (with interpolation), and then reshape them back to flat features
-#     if interpolate_features:
-#         feature_space = reshape_patches_to_img(patch_features_flat, padded_image.shape[:2], patch_size=(14,14), interpolation_order=interpolate_features)
-#         features = np.reshape(feature_space, (padded_image.shape[0]*padded_image.shape[1], num_features))
-#     else:
-#         features = patch_features_flat
-#     predicted_labels = random_forest.predict(features)
-#     # If we are not using interpolated per pixel features, we reshape the predicted labels to the image size considering the patches
-#     if not interpolate_features:
-#         pred_img = reshape_patches_to_img(predicted_labels, padded_image.shape[:2], interpolation_order=0)
-#     # Otherwise the features are already per pixel and can be reshaped directly
-#     else:
-#         pred_img = np.reshape(predicted_labels, padded_image.shape[:2])
-#     pred_img_recrop = pred_img[:image.shape[0], :image.shape[1]]
-#     return pred_img_recrop
+def selfpredict_seg_forest_single_image(image, labels, features_func, features_cfg={}, random_state=0):
+    '''
+    Takes an image and labels, extracts features using the given function, trains a random forest classifier
+    based on the labels, and predicts labels for the entire image.
+    INPUT:
+        image (np.ndarray): image to predict on. Shape (H, W, C) or (H, W)
+        labels (np.ndarray): labels for the image. Shape (H, W), same dimensions as image
+        features_func (function): function to extract features from an image
+            must take an image of shape (H, W, C) or (H, W)
+            and return features of shape (H * W, n_features)
+        features_cfg (dict): configuration for the feature extraction function
+    OUTPUT:
+        pred_img (np.ndarray): predicted labels. Shape (H, W)
+    '''
+    # Extract features for the entire image
+    feature_space = features_func(image, **features_cfg)
+    # Get features and targets of annotated pixels
+    features, targets = get_features_targets(feature_space, labels)
+    # Train the random forest classifier
+    random_forest = RandomForestClassifier(n_estimators=100, random_state=random_state)
+    random_forest.fit(features, targets)
+    # Predict the labels for the entire image
+    num_features = feature_space.shape[2]
+    features = np.reshape(feature_space, (image.shape[0]*image.shape[1], num_features))
+    predicted_labels = random_forest.predict(features)
+    pred_img = np.reshape(predicted_labels, image.shape[:2])
+    return pred_img
