@@ -69,7 +69,7 @@ def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={},
     '''
     Takes an image batch and a trained random forest classifier, extracts features using the given function, and predicts labels for all images.
     INPUT:
-        image_batch (list of np.ndarrays or np.ndarray): list/batch of images to predict on. Each image has shape (H, W, C) or (H, W)
+        img_batch (list of np.ndarrays or np.ndarray): list/batch of images to predict on. Each image has shape (H, W, C) or (H, W)
         random_forest (RandomForestClassifier): trained random forest classifier
         features_func (function): function to extract features from an image
             must take an image of shape (H, W, C) or (H, W)

@@ -68,9 +68,9 @@ def pad_to_patch(image, vert_pos="center", hor_pos="center", pad_mode='constant'
 
 def calculate_padding(im_shape, patch_size=(14,14)):
     '''
-    Takes an image shape and a patch_size and returns the padding needed to make the image a multiple of the patch size (v, h).
+    Takes an image shape - (H, W, C) or (H, W) - and a patch_size and returns the padding needed to make the image a multiple of the patch size (v, h).
     '''
-    h, w = im_shape
+    h, w = im_shape[:2]
     ph, pw = patch_size
     # Calculate how much padding has to be done in total on each axis
     # The total pad on one axis is a patch size minus whatever remains when dividing the picture size including the extra pads by the patch size
