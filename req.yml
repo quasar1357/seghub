@@ -11,10 +11,11 @@ dependencies:
   - scikit-video=1.1.11
   - ilastik-napari=0.2.2
   - fastfilters=0.2.4.post83
-  - matplotlib
+    - matplotlib
   - ipykernel=6.25.0
   - pip
   - pip:
+    - timm==1.0.7
     - napari[all]
     - napari-convpaint==0.3.0
     - --extra-index-url https://download.pytorch.org/whl/cu117
