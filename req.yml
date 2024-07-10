@@ -11,7 +11,7 @@ dependencies:
   - scikit-video=1.1.11
   - ilastik-napari=0.2.2
   - fastfilters=0.2.4.post83
-    - matplotlib
+  - matplotlib
   - ipykernel=6.25.0
   - pip
   - pip:
