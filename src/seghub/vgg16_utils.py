@@ -4,6 +4,11 @@ import torch
 from torch.nn.functional import interpolate as torch_interpolate
 from seghub.util_funcs import norm_for_imagenet, get_features_targets
 
+def print_vgg16_layers(model_name="vgg16"):
+    model = Hookmodel(model_name=model_name)
+    print(model.module_dict)
+    return
+
 def get_vgg16_feature_space(image, layer_list=[0], scalings=[1,2], model_name="vgg16", rgb_if_possible=True):
     '''
     Use vgg16 to extract features from an image (entire image); returns them in input image shape.
