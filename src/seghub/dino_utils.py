@@ -134,7 +134,7 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, p
     '''
     Takes an image (padded to a multiple of patch size) and extracts features using a DINOv2 model.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -146,7 +146,7 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, p
                                where F is the number of features extracted
                                and Hp and Wp are the number of patches per height and width
     '''
-    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
+    patch_size = (14,14) if not dinov2_model == 'uni' else (16,16)
     padded_image = pad_to_patch(image, "bottom", "right", patch_size=patch_size)
     # If the image has 3 channels and RGB is chosen, extract features as usual
     if len(padded_image.shape) == 3 and padded_image.shape[2] == 3 and rgb_if_possible:
@@ -166,7 +166,7 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc
     extracts features using a DINOv2 model,
     reshapes them to input image size.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -176,10 +176,9 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc
     OUTPUT:
         features (np.ndarray): extracted features. Shape (H, W, F) where F is the number of features extracted
     '''
-    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
     patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc=pc)
     # Recreate an image-sized feature space from the features
-    patch_size = (16,16) if dinov2_model == 'uni' else (14,14)
+    patch_size = (14,14) if not dinov2_model == 'uni' else (16,16)
     vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=patch_size)
     padded_img_shape = (image.shape[0] + vertical_pad, image.shape[1] + horizontal_pad)
     feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape, patch_size=patch_size, interpolation_order=interpolate_features)
@@ -192,7 +191,7 @@ def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, p
     extracts features using a DINOv2 model,
     reshapes them to per-pixel level.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -214,7 +213,7 @@ def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possib
     Takes an image and labels, extracts features using a DINOv2 model,
     and returns the features of annotated pixels and their targets.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats

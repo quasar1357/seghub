@@ -1,3 +1,4 @@
 0.0.2   fix normalization to ImageNet mean and std
 0.0.3	fix RGB handling in VGG16
 0.0.4	using only feature_space function for training (get features_annot and targets inside)
+0.0.5   dilution of features or preds, batch-to-batch pred func (segment_seg_forest)

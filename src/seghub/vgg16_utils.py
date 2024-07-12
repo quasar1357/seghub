@@ -8,7 +8,7 @@ def get_vgg16_feature_space(image, layer_list=[0], scalings=[1,2], model_name="v
     '''
     Use vgg16 to extract features from an image (entire image); returns them in input image shape.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image to extract features from. Shape (H, W) or (H, W, C)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -19,12 +19,12 @@ def get_vgg16_feature_space(image, layer_list=[0], scalings=[1,2], model_name="v
     OUTPUTS:
         features (np.ndarray): extracted features. Shape (H, W, F)
     '''
-    # We expect [C, H, W]
+    # We take (H, W, C) but for VGG16 need [C, H, W]
     if len(image.shape) == 3:
         image = np.moveaxis(image, -1, 0)
     # Define the model
     model = Hookmodel(model_name=model_name)
-    # Ensure the layers are given as a list
+    # Ensure the layers are a list
     if isinstance(layer_list, int):
         layer_list = [layer_list]
     # Read out the layer names
@@ -36,8 +36,9 @@ def get_vgg16_feature_space(image, layer_list=[0], scalings=[1,2], model_name="v
                                           order=1, image_downsample=1, rgb_if_possible=rgb_if_possible)
     # Concatenate feature space (the function above returns a list)
     feature_space = np.concatenate(features, axis=1)
-    # Remove the first dimension (the function above assumes time-frames, of which we only use 1)
+    # Remove the first dimension (the function above assumes time-frames, of which we only use a single one)
     feature_space = feature_space[0]
+    # Move the feature dimension to the last axis to return (H, W, F) (according to the input image shape)
     feature_space = np.moveaxis(feature_space, 0, -1)
     return feature_space
 
@@ -46,7 +47,7 @@ def get_vgg16_features_targets(image, labels, layer_list=[0], scalings=[1,2], mo
     Takes an image and extracts features using a vgg16 model;
     returns the features of annotated pixels and their targets.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image to extract features from. Shape (H, W) or (H, W, C)
         labels (np.ndarray): labels. Shape (H, W)
@@ -67,7 +68,7 @@ def get_vgg16_pixel_features(image, layer_list=[0], scalings=[1,2], model_name="
     Takes an image and extracts features using a vgg16 model;
     returns linear per-pixel features.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
     INPUT:
         image (np.ndarray): image to extract features from. Shape (H, W) or (H, W, C)
         layer_list (list of int): list of layer indices to use for feature extraction with vgg16
@@ -140,6 +141,7 @@ def filter_image_multichannels_rgb(image, hookmodel, scalings=[1], order=0,
         for image in image_series:
             # Normalize the image to ImageNet stats; make sure to keep the original dtype
             old_type = image.dtype
+            # norm_for_imagenet expects [C, H, W] --> move channels and then back
             image = np.moveaxis(norm_for_imagenet(np.moveaxis(image, 0, -1)), -1, 0)
             image = image.astype(old_type)
             # Loop and concatenate the outputs of the scalings

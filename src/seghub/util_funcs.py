@@ -136,13 +136,13 @@ def get_features_targets(feature_space, labels):
 
 def extract_batch_features_targets(image_batch, labels_batch, features_func, features_cfg, print_steps=False):
     '''
-    Takes an image batch and a label batch, extracts features using a extraction function and returns the features and targets.
+    Takes an image batch and a label batch, extracts features using an extraction function and returns all features and their targets.
     INPUT:
         image_batch (list of np.ndarray): list of images. Each image has shape (H, W, C) or (H, W)
         labels_batch (list of np.ndarray): list of labels. Each label has shape (H, W)
         features_func (function): function to extract features from an image
-            must take an image of shape (H, W, C) or (H, W) and labels of shape (H, W)
-            and return features of shape (n_annotated, n_features) and targets of shape (n_annotated) as first two elements
+            must take an image of shape (H, W, C) or (H, W)
+            and return features of shape (H * W, n_features) (feature space)
         features_cfg (dict): configuration for the feature extraction function
     OUTPUT:
         features (np.ndarray): features of all annotated pixels in batch. Shape (n_annotated, n_features)
@@ -159,6 +159,7 @@ def extract_batch_features_targets(image_batch, labels_batch, features_func, fea
         all_same_channels = all([image.shape[2] == image_batch[0].shape[2] for image in image_batch])
         if not all_same_channels:
             raise ValueError('All images in the batch must have the same number of channels')
+    # Iterate over the images and extract features and targets for each annotated pixel
     features_list = []
     targets_list = []
     i = 0
@@ -171,7 +172,8 @@ def extract_batch_features_targets(image_batch, labels_batch, features_func, fea
             est_t = f"{((time()-t_start)/(i))*(num_labelled-i):.1f} seconds" if i > 0 else "NA"
             print(f'Extracting features for labels {i+1}/{num_labelled} - estimated time left: {est_t}')
             i += 1
-        features_annot, targets = features_func(image, labels, **features_cfg)[:2]
+        feature_space = features_func(image, labels, **features_cfg)
+        features_annot, targets = get_features_targets(feature_space, labels)
         features_list.append(features_annot)
         targets_list.append(targets)
     features_annot = np.concatenate(features_list)
