@@ -5,7 +5,8 @@ from sklearn.ensemble import RandomForestClassifier
 from time import time
 from skimage import filters, morphology
 
-def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0, pcs_as_features=False, feature_smoothness=False, img_as_feature=False):
+def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
+                     pcs_as_features=False, feature_smoothness=False, img_as_feature=False):
     '''
     Takes an image batch and a label batch, extracts features using the given function, and trains a random forest classifier.
     INPUT:
