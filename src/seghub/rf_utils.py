@@ -16,6 +16,11 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
             must take an image of shape (H, W, C) or (H, W)
             and return features of shape (H, W, n_features) (feature space)
         features_cfg (dict): configuration for the feature extraction function (parametes of the function given as key-value pairs)
+        print_steps (bool): whether to print progress
+        random_state (int): random state for the random forest classifier
+        pcs_as_features (bool or int): number of principal components to use as features (or False to turn off)
+        feature_smoothness (bool or int): size of the median filter footprint for smoothening the features (or False to turn off)
+        img_as_feature (bool): whether to add the original image as a feature (each channel is added as a feature)
     OUTPUT:
         random_forest (RandomForestClassifier): trained random forest classifier
     '''
@@ -77,7 +82,10 @@ def predict_seg_forest_single_image(image, random_forest, features_func, feature
             If True, features_func must return per patch features (and patch_size must be given)
             If False, features_func must return per pixel features
         patch_size (tuple of int): size of the patches
-        print_steps (bool): whether to print progress
+        pcs_as_features (bool or int): number of principal components to use as features (or False to turn off)
+        feature_smoothness (bool or int): size of the median filter footprint for smoothening the features (or False to turn off)
+        img_as_feature (bool): whether to add the original image as a feature (each channel is added as a feature)
+        pred_smoothness (bool or int): size of the majority filter footprint for smoothening the prediction (or False to turn off)
     OUTPUT:
         pred_img (np.ndarray): predicted labels. Shape (H, W)
     '''
@@ -139,6 +147,10 @@ def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={},
             If False, features_func must return per pixel features
         patch_size (tuple of int): size of the patches; must be given if pred_per_patch == True
         print_steps (bool): whether to print progress
+        pcs_as_features (bool or int): number of principal components to use as features (or False to turn off)
+        feature_smoothness (bool or int): size of the median filter footprint for smoothening the features (or False to turn off)
+        img_as_feature (bool): whether to add the original image as a feature (each channel is added as a feature)
+        pred_smoothness (bool or int): size of the majority filter footprint for smoothening the prediction (or False to turn off)
     OUTPUT:
         pred_batch (np.ndarray): predicted labels. Shape (N, H, W)
     '''
@@ -166,6 +178,11 @@ def selfpredict_seg_forest_single_image(image, labels, features_func, features_c
             must take an image of shape (H, W, C) or (H, W)
             and return features of shape (H, W, n_features) (feature space)
         features_cfg (dict): configuration for the feature extraction function (parametes of the function given as key-value pairs)
+        random_state (int): random state for the random forest classifier
+        pcs_as_features (bool or int): number of principal components to use as features (or False to turn off)
+        feature_smoothness (bool or int): size of the median filter footprint for smoothening the features (or False to turn off)
+        img_as_feature (bool): whether to add the original image as a feature (each channel is added as a feature)
+        pred_smoothness (bool or int): size of the majority filter footprint for smoothening the prediction (or False to turn off)
     OUTPUT:
         pred_img (np.ndarray): predicted labels. Shape (H, W)
     '''
@@ -217,6 +234,10 @@ def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, featur
         features_cfg (dict): configuration for the feature extraction function (parametes of the function given as key-value pairs)
         print_steps (bool): whether to print progress
         random_state (int): random state for the random forest classifier
+        pcs_as_features (bool or int): number of principal components to use as features (or False to turn off)
+        feature_smoothness (bool or int): size of the median filter footprint for smoothening the features (or False to turn off)
+        img_as_feature (bool): whether to add the original image as a feature (each channel is added as a feature)
+        pred_smoothness (bool or int): size of the majority filter footprint for smoothening the prediction (or False to turn off)
     OUTPUT:
         pred_batch (np.ndarray): predicted labels. Shape (N, H, W) where N is the number of images in the batch to predict
     '''
