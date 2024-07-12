@@ -130,7 +130,7 @@ def extract_features_multichannel(image, dinov2_model='s_r'):
     features = np.concatenate(features_list, axis=1)
     return features
 
-def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, pc=False):
+def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False):
     '''
     Takes an image (padded to a multiple of patch size) and extracts features using a DINOv2 model.
     If the image has 3 channels and RGB is chosen, extract features as usual.
@@ -156,11 +156,11 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, p
     else:
         dinov2_features = extract_features_multichannel(padded_image, dinov2_model)
     # Apply PCA if chosen
-    if pc:
-        dinov2_features = get_pca_features(dinov2_features, num_components=pc)    
+    if pc_as_features:
+        dinov2_features = get_pca_features(dinov2_features, num_components=pc_as_features)    
     return dinov2_features
 
-def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc=False, interpolate_features=False):
+def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
     '''
     Takes an image (padded to a multiple of patch size),
     extracts features using a DINOv2 model,
@@ -176,7 +176,7 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc
     OUTPUT:
         features (np.ndarray): extracted features. Shape (H, W, F) where F is the number of features extracted
     '''
-    patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc=pc)
+    patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features)
     # Recreate an image-sized feature space from the features
     patch_size = (14,14) if not dinov2_model == 'uni' else (16,16)
     vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=patch_size)
@@ -185,7 +185,7 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc
     feature_space_recrop = feature_space[:image.shape[0], :image.shape[1]]
     return feature_space_recrop
 
-def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, pc=False, interpolate_features=False):
+def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
     '''
     Takes an image (padded to a multiple of patch size),
     extracts features using a DINOv2 model,
@@ -201,14 +201,14 @@ def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, p
     OUTPUT:
         features (np.ndarray): extracted features. Shape (H*W, F) where F is the number of features extracted
     '''
-    feature_space = get_dinov2_feature_space(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc=pc, interpolate_features=interpolate_features)
+    feature_space = get_dinov2_feature_space(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features, interpolate_features=interpolate_features)
     # Flatten the spatial dimensions (keeping the features in the last dimension) --> per pixel features
     num_pix = image.shape[0] * image.shape[1]
     num_features = feature_space.shape[2]
     pixel_features_flat = np.reshape(feature_space, (num_pix, num_features))
     return pixel_features_flat
 
-def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possible=True, pc=False, interpolate_features=False):
+def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
     '''
     Takes an image and labels, extracts features using a DINOv2 model,
     and returns the features of annotated pixels and their targets.
@@ -227,6 +227,6 @@ def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possib
         targets (np.ndarray): targets of annotated pixels. Shape (n_annotated)
     '''
     feature_space = get_dinov2_feature_space(image,
-                                             dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc=pc, interpolate_features=interpolate_features)
+                                             dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features, interpolate_features=interpolate_features)
     features_annot, targets = get_features_targets(feature_space, labels)
     return features_annot, targets

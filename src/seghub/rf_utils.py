@@ -1,10 +1,11 @@
 import numpy as np
 from seghub.util_funcs import test_img_labels_batch_shapes, reshape_patches_to_img, calculate_padding, get_features_targets
+from seghub.classif_utils import get_pca_features
 from sklearn.ensemble import RandomForestClassifier
 from time import time
 from skimage import filters, morphology
 
-def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0, smooth_features=False):
+def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0, pcs_as_features=False, feature_smoothness=False, img_as_feature=False):
     '''
     Takes an image batch and a label batch, extracts features using the given function, and trains a random forest classifier.
     INPUT:
@@ -25,7 +26,7 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
     i = 0
     num_labelled = sum([np.any(labels) for labels in labels_batch])
     t_start = time()
-    # Iterate over the images and extract features and targets for each annotated pixel
+    # Iterate over the images and their labels and extract features and targets for each annotated pixel
     for image, labels in zip(image_batch, labels_batch):
         if np.all(labels == 0):
             continue
@@ -33,11 +34,21 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
             est_t = f"{((time()-t_start)/(i))*(num_labelled-i):.1f} seconds" if i > 0 else "NA"
             print(f'Extracting features for labels {i+1}/{num_labelled} - estimated time left: {est_t}')
             i += 1
-        feature_space = features_func(image, labels, **features_cfg)
-        if smooth_features:
+        feature_space = features_func(image, **features_cfg)
+        # Get principal components as features if desired
+        if pcs_as_features:
+            feature_space = get_pca_features(feature_space, num_components=pcs_as_features)
+        # Smoothen the features by applying a median filter if desired
+        if feature_smoothness:
             feature_space = np.moveaxis(feature_space, 2, 0)
-            feature_space = np.array([filters.median(f, footprint=morphology.disk(smooth_features)) for f in feature_space])
+            feature_space = np.array([filters.median(f, footprint=morphology.disk(feature_smoothness)) for f in feature_space])
             feature_space = np.moveaxis(feature_space, 0, 2)
+        # Add original image as feature if desired
+        if img_as_feature:
+            if len(image.shape) == 2:
+                image = np.expand_dims(image, axis=2)
+            feature_space = np.dstack((feature_space, image))
+        # Get features and targets of annotated pixels
         features_annot, targets = get_features_targets(feature_space, labels)
         features_list.append(features_annot)
         targets_list.append(targets)
@@ -48,7 +59,8 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
     random_forest.fit(features_annot, targets)
     return random_forest
 
-def predict_seg_forest_single_image(image, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), smooth_features=False):
+def predict_seg_forest_single_image(image, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14),
+                                    pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image and a trained random forest classifier, extracts features using the given function, and predicts labels.
     INPUT:
@@ -69,21 +81,30 @@ def predict_seg_forest_single_image(image, random_forest, features_func, feature
         pred_img (np.ndarray): predicted labels. Shape (H, W)
     '''
     features = features_func(image, **features_cfg)
-
-    if smooth_features:
+    # Get principal components as features if desired
+    if pcs_as_features:
+        features = get_pca_features(features, num_components=pcs_as_features)
+    # Smoothen the features by applying a median filter if desired
+    if feature_smoothness:
         if len(features.shape) < 3:
-            raise ValueError("Cannot smooth features if they are not per pixel.")
+            raise ValueError("Smoothening of features only possible if extracted as feature space.")
         else:
             features = np.moveaxis(features, 2, 0)
-            features = np.array([filters.median(f, footprint=morphology.disk(smooth_features)) for f in features])
+            features = np.array([filters.median(f, footprint=morphology.disk(feature_smoothness)) for f in features])
             features = np.moveaxis(features, 0, 2)
-
+    # Add original image as feature if desired
+    if img_as_feature:
+        if len(features.shape) < 3:
+            raise ValueError("Adding image as feature only possible if features are extracted as feature space.")
+        else:
+            if len(image.shape) == 2:
+                image = np.expand_dims(image, axis=2)
+            features = np.dstack((features, image))
     # If features are given as a feature space, we reshape them to flat features
     if len(features.shape) > 2:
         num_features = features.shape[2]
         features = np.reshape(features, (image.shape[0]*image.shape[1], num_features))
     predicted_labels = random_forest.predict(features)
-    
     # If we have no patch resizing, the features are already per pixel
     if not pred_per_patch:
         pred_img = np.reshape(predicted_labels, image.shape[:2])
@@ -94,10 +115,13 @@ def predict_seg_forest_single_image(image, random_forest, features_func, feature
         pred_img = reshape_patches_to_img(predicted_labels, padded_img_shape, interpolation_order=0)
         # Crop away the padding back to the original image size
         pred_img = pred_img[:image.shape[0], :image.shape[1]]
-    
+    # Smoothen the prediction by applying a majority filter if desired
+    if pred_smoothness:
+        pred_img = filters.rank.majority(pred_img, footprint=morphology.disk(pred_smoothness))
     return pred_img
 
-def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False, smooth_features=False):
+def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False,
+                       pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image batch and a trained random forest classifier, extracts features using the given function, and predicts labels for all images.
     INPUT:
@@ -125,10 +149,12 @@ def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={},
         if print_steps:
             est_t = f"{((time()-t_start)/(i))*(len(img_batch)-i):.1f} seconds" if i > 0 else "NA"
             print(f'Predicting image {i+1}/{len(img_batch)} - estimated time left: {est_t}')
-        pred_batch[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size, smooth_features=smooth_features))
+        pred_batch[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size,
+                                                         pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature, pred_smoothness=pred_smoothness))
     return pred_batch
 
-def selfpredict_seg_forest_single_image(image, labels, features_func, features_cfg={}, random_state=0, smooth_features=False):
+def selfpredict_seg_forest_single_image(image, labels, features_func, features_cfg={}, random_state=0,
+                                        pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image and labels, extracts features using the given function, trains a random forest classifier
     based on the labels, and predicts labels for the entire image. Extracts features only once.
@@ -144,12 +170,19 @@ def selfpredict_seg_forest_single_image(image, labels, features_func, features_c
     '''
     # Extract features for the entire image (only need to do this once if selfpredicting)
     feature_space = features_func(image, **features_cfg)
-
-    if smooth_features:
-        features = np.moveaxis(features, 2, 0)
-        features = np.array([filters.median(f, footprint=morphology.disk(smooth_features)) for f in features])
-        features = np.moveaxis(features, 0, 2)
-
+    # Get principal components as features if desired
+    if pcs_as_features:
+        feature_space = get_pca_features(feature_space, num_components=pcs_as_features)        
+    # Smoothen the features by applying a median filter if desired
+    if feature_smoothness:
+        feature_space = np.moveaxis(feature_space, 2, 0)
+        feature_space = np.array([filters.median(f, footprint=morphology.disk(feature_smoothness)) for f in feature_space])
+        feature_space = np.moveaxis(feature_space, 0, 2)
+    # Add original image as feature if desired
+    if img_as_feature:
+        if len(image.shape) == 2:
+            image = np.expand_dims(image, axis=2)
+        feature_space = np.dstack((feature_space, image))
     # Get features and targets of annotated pixels
     features, targets = get_features_targets(feature_space, labels)
     # Train the random forest classifier
@@ -162,9 +195,13 @@ def selfpredict_seg_forest_single_image(image, labels, features_func, features_c
     predicted_labels = random_forest.predict(features_flat)
     # Reshape the predicted labels to the image size (H, W)
     pred_img = np.reshape(predicted_labels, image.shape[:2])
+    # Smoothen the prediction by applying a majority filter if desired
+    if pred_smoothness:
+        pred_img = filters.rank.majority(pred_img, footprint=morphology.disk(pred_smoothness))
     return pred_img
 
-def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, features_func, features_cfg={}, print_steps=False, random_state=0, smooth_features=False):
+def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
+                       pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image batch and a label batch, extracts features using the given function, trains a random forest classifier
     based on the labels, and predicts labels for the entire image batch or on a separate image batch if given.
@@ -184,6 +221,8 @@ def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, featur
     '''
     if pred_image_batch is None:
         pred_image_batch = train_image_batch
-    rf = train_seg_forest(train_image_batch, labels_batch, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps, random_state=random_state, smooth_features=smooth_features)
-    pred_batch = predict_seg_forest(pred_image_batch, rf, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps, smooth_features=smooth_features)
+    rf = train_seg_forest(train_image_batch, labels_batch, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps, random_state=random_state,
+                          pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature)
+    pred_batch = predict_seg_forest(pred_image_batch, rf, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps,
+                                    pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature, pred_smoothness=pred_smoothness)
     return pred_batch
