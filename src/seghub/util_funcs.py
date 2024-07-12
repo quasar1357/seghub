@@ -134,19 +134,11 @@ def get_features_targets(feature_space, labels):
     features_annot = features_flat[labels_mask]
     return features_annot, targets
 
-def extract_batch_features_targets(image_batch, labels_batch, features_func, features_cfg, print_steps=False):
+def test_img_labels_batch_shapes(image_batch, labels_batch):
     '''
-    Takes an image batch and a label batch, extracts features using an extraction function and returns all features and their targets.
-    INPUT:
-        image_batch (list of np.ndarray): list of images. Each image has shape (H, W, C) or (H, W)
-        labels_batch (list of np.ndarray): list of labels. Each label has shape (H, W)
-        features_func (function): function to extract features from an image
-            must take an image of shape (H, W, C) or (H, W)
-            and return features of shape (H * W, n_features) (feature space)
-        features_cfg (dict): configuration for the feature extraction function
+    Takes an image batch and a label batch and checks if they have the correct shapes.
     OUTPUT:
-        features (np.ndarray): features of all annotated pixels in batch. Shape (n_annotated, n_features)
-        targets (np.ndarray): targets of all annotated pixels in batch. Shape (n_annotated)
+        None
     '''
     if not len(image_batch) == len(labels_batch):
         raise ValueError('Image and label batch must have the same length (each image needs its labels)')
@@ -159,23 +151,4 @@ def extract_batch_features_targets(image_batch, labels_batch, features_func, fea
         all_same_channels = all([image.shape[2] == image_batch[0].shape[2] for image in image_batch])
         if not all_same_channels:
             raise ValueError('All images in the batch must have the same number of channels')
-    # Iterate over the images and extract features and targets for each annotated pixel
-    features_list = []
-    targets_list = []
-    i = 0
-    num_labelled = sum([np.any(labels) for labels in labels_batch])
-    t_start = time()
-    for image, labels in zip(image_batch, labels_batch):
-        if np.all(labels == 0):
-            continue
-        if print_steps:
-            est_t = f"{((time()-t_start)/(i))*(num_labelled-i):.1f} seconds" if i > 0 else "NA"
-            print(f'Extracting features for labels {i+1}/{num_labelled} - estimated time left: {est_t}')
-            i += 1
-        feature_space = features_func(image, labels, **features_cfg)
-        features_annot, targets = get_features_targets(feature_space, labels)
-        features_list.append(features_annot)
-        targets_list.append(targets)
-    features_annot = np.concatenate(features_list)
-    targets = np.concatenate(targets_list)
-    return features_annot, targets
+    return None
