@@ -60,19 +60,20 @@ def features_combinator(image, features_func_list, features_cfg_list, num_pcs_li
     '''
     features_list = []
     for i, features_func in enumerate(features_func_list):
-        features = features_func(image, **features_cfg_list[i])
+        feature_space = features_func(image, **features_cfg_list[i])
         # Get principal components if desired
         if num_pcs_list is not None and num_pcs_list[i] > 0:
-            features = get_pca_features(features, num_components=num_pcs_list[i])
-        # Smoothen features if desired
+            feature_space = get_pca_features(feature_space, num_components=num_pcs_list[i])
+        # Smoothen feature_space if desired
         if feature_smoothness_list is not None and feature_smoothness_list[i] > 0:
             feature_space = np.moveaxis(feature_space, 2, 0)
             feature_space = np.array([filters.median(f, footprint=morphology.disk(feature_smoothness_list[i])) for f in feature_space])
             feature_space = np.moveaxis(feature_space, 0, 2)
-            features_list.append(features)
         # Add image pixel values (of each channel) as features
+        features_list.append(feature_space)
+    features_combined = np.stack(features_list, axis=-1)
+    if img_as_feature:
         if len(image.shape) == 2:
             image = np.expand_dims(image, axis=2)
-        feature_space = np.dstack((feature_space, image))
-    features_combined = np.stack(features_list, axis=-1)
+        features_combined = np.dstack((features_combined, image))
     return features_combined
