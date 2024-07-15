@@ -71,7 +71,7 @@ def features_combinator(image, features_func_list, features_cfg_list, num_pcs_li
             feature_space = np.moveaxis(feature_space, 0, 2)
         # Add image pixel values (of each channel) as features
         features_list.append(feature_space)
-    features_combined = np.stack(features_list, axis=-1)
+    features_combined = np.concatenate(features_list, axis=-1)
     if img_as_feature:
         if len(image.shape) == 2:
             image = np.expand_dims(image, axis=2)
