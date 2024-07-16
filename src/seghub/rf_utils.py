@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from time import time
 from skimage import filters, morphology
 
-def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
+def train_segforest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
                      pcs_as_features=False, feature_smoothness=False, img_as_feature=False):
     '''
     Takes an image batch and a label batch, extracts features using the given function, and trains a random forest classifier.
@@ -65,7 +65,7 @@ def train_seg_forest(image_batch, labels_batch, features_func, features_cfg={}, 
     random_forest.fit(features_annot, targets)
     return random_forest
 
-def predict_seg_forest_single_image(image, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14),
+def predict_segforest_single_image(image, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14),
                                     pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image and a trained random forest classifier, extracts features using the given function, and predicts labels.
@@ -129,7 +129,7 @@ def predict_seg_forest_single_image(image, random_forest, features_func, feature
         pred_img = filters.rank.majority(pred_img, footprint=morphology.disk(pred_smoothness))
     return pred_img
 
-def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False,
+def predict_segforest(img_batch, random_forest, features_func, features_cfg={}, pred_per_patch=False, patch_size=(14,14), print_steps=False,
                        pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image batch and a trained random forest classifier, extracts features using the given function, and predicts labels for all images.
@@ -162,11 +162,11 @@ def predict_seg_forest(img_batch, random_forest, features_func, features_cfg={},
         if print_steps:
             est_t = f"{((time()-t_start)/(i))*(len(img_batch)-i):.1f} seconds" if i > 0 else "NA"
             print(f'Predicting image {i+1}/{len(img_batch)} - estimated time left: {est_t}')
-        pred_batch[i] = (predict_seg_forest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size,
+        pred_batch[i] = (predict_segforest_single_image(image, random_forest, features_func, features_cfg, pred_per_patch=pred_per_patch, patch_size=patch_size,
                                                          pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature, pred_smoothness=pred_smoothness))
     return pred_batch
 
-def selfpredict_seg_forest_single_image(image, labels, features_func, features_cfg={}, random_state=0,
+def selfpredict_segforest_single_image(image, labels, features_func, features_cfg={}, random_state=0,
                                         pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image and labels, extracts features using the given function, trains a random forest classifier
@@ -218,7 +218,7 @@ def selfpredict_seg_forest_single_image(image, labels, features_func, features_c
         pred_img = filters.rank.majority(pred_img, footprint=morphology.disk(pred_smoothness))
     return pred_img
 
-def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
+def segment_segforest(train_image_batch, labels_batch, pred_image_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
                        pcs_as_features=False, feature_smoothness=False, img_as_feature=False, pred_smoothness=False):
     '''
     Takes an image batch and a label batch, extracts features using the given function, trains a random forest classifier
@@ -243,8 +243,8 @@ def segment_seg_forest(train_image_batch, labels_batch, pred_image_batch, featur
     '''
     if pred_image_batch is None:
         pred_image_batch = train_image_batch
-    rf = train_seg_forest(train_image_batch, labels_batch, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps, random_state=random_state,
+    rf = train_segforest(train_image_batch, labels_batch, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps, random_state=random_state,
                           pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature)
-    pred_batch = predict_seg_forest(pred_image_batch, rf, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps,
+    pred_batch = predict_segforest(pred_image_batch, rf, features_func=features_func, features_cfg=features_cfg, print_steps=print_steps,
                                     pcs_as_features=pcs_as_features, feature_smoothness=feature_smoothness, img_as_feature=img_as_feature, pred_smoothness=pred_smoothness)
     return pred_batch
