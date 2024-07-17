@@ -290,42 +290,18 @@ class SegBox:
         if self.rf is None:
             raise ValueError('No trained Random Forest model.')
         joblib.dump(self.rf, filename+'.joblib')
-        data = [self.options, self.rf_settings, self.extractors]
+        data = {"options":self.options, "rf settings":self.rf_settings, "extractors": self.extractors} #[self.options, self.rf_settings, self.extractors]
         with open(filename+'.yml', 'w') as file:
             yaml.dump(data, file, default_flow_style=False)
-
-        # Save the options, extractors and RF settings
-        # with open(filename+'.txt', 'w') as f:
-        #     f.write(str(self))
-
-        # Save them also in a format more suited for loading
-        # with open(filename+'.dict', 'w') as f:
-        #     f.write(str(self.options)+'\n')
-        #     f.write(str(self.extractors)+'\n')
-        #     f.write(str(self.rf_settings))
         
     def rf_load(self, filename):
         self.rf = joblib.load(filename+'.joblib')
         with open(filename+'.yml', 'r') as file:
             data = yaml.load(file, Loader=yaml.FullLoader)
-        self.options = data[0]
-        self.rf_settings = data[1]
-        self.extractors = data[2]
-
-        # with open(filename+'.txt', 'r') as f:
-        #     print("IMPORTANT: The loaded file was saved with the following settings, " +
-        #           "please assure that the current settings are compatible:\n")
-        #     print(f.read())
-
-        # Load the options, extractors and RF settings
-        # with open(filename+'.dict', 'r') as f:
-        #     options = f.readline()
-        #     extractors = f.readline()
-        #     rf_settings = f.readline()
-        # import ast
-        # self.options = ast.literal_eval(options)
-        # self.rf_settings = ast.literal_eval(rf_settings)
-        # self.extractors = ast.literal_eval(extractors)
+        self.options = data["options"]
+        self.rf_settings = data["rf settings"]
+        self.extractors = data["extractors"]
+        self.adjusted = False
 
     def get_kmeans(self, img, num_clusters):
         feature_space = self.extract_features(img)
@@ -335,7 +311,6 @@ class SegBox:
     
 
 # ToDo:
-#  - Optimize saving and loading
 #  - Use linter, add unit-tests etc.
 #  - Classifier agnostic implementation
 #  - Add more different classifiers
