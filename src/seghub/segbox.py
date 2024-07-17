@@ -55,7 +55,15 @@ class SegBox:
 
     def add_extractors(self, extractors_dict):
         for extractor_name in extractors_dict:
-            self.add_extractor(extractor_name, extractors_dict[extractor_name]['func'], extractors_dict[extractor_name]['cfg'])
+            extr_in = extractors_dict[extractor_name]
+            if not 'num_pcs' in extr_in:
+                extr_in['num_pcs'] = False
+            if not 'smoothening' in extr_in:
+                extr_in['smoothening'] = False
+            self.add_extractor(extractor_name, extr_in['func'],
+                                               extr_in['cfg'],
+                                               extr_in['num_pcs'],
+                                               extr_in['smoothening'])
 
     def set_extractor_func(self, extractor_name, extractor_func):
         if not extractor_name in self.extractors:
