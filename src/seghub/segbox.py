@@ -8,15 +8,19 @@ from seghub.classif_utils import get_pca_features, get_kmeans_clusters
 class SegBox:
 
     def __init__(self, verbose=True):
+        self.options = {"PCs as features":False, "IMG as feature":False, "Smoothen preds":False}
         self.extractors = {}
-        self.options = {"pcs_as_features":False, "img_as_feature":False, "pred_smoothening":False}
         self.rf = None
+        self.rf_settings = {"Nr. estimators":100, "Random state":None}
+        self.prediction_history = []
         self.verbose = verbose
 
     def __str__(self):
         out_str = 'Segmentation Box\n================\n'
         out_str += 'OPTIONS:\n'
         out_str += self.get_options_infos()
+        out_str += 'RANDOM FOREST SETTINGS:\n'
+        out_str += self.get_rf_settings()
         out_str += 'FEATURE EXTRACTORS:\n'
         out_str += self.get_extractors_infos()
         return out_str
@@ -24,21 +28,41 @@ class SegBox:
     def set_options(self, pcs_as_features=False,
                           img_as_feature=False,
                           pred_smoothening=False):
-        options = {"pcs_as_features":pcs_as_features,
-                   "img_as_feature":img_as_feature,
-                   "pred_smoothening":pred_smoothening}
+        options = {"PCs as features": pcs_as_features,
+                   "IMG as feature": img_as_feature,
+                   "Smoothen preds": pred_smoothening}
         if not all(self.options[k] == options[k] for k in options.keys()):
-            self.options = {"pcs_as_features":pcs_as_features,
-                            "img_as_feature":img_as_feature,
-                            "pred_smoothening":pred_smoothening}
+            self.options = {"PCs as features": pcs_as_features,
+                            "IMG as feature": img_as_feature,
+                            "Smoothen preds": pred_smoothening}
             if self.rf is not None and self.verbose:
                 print('Options changed. Random Forest model has been reset.')
             self.rf = None
 
     def get_options_infos(self):
         out_str = ''
+        max_len = max([len(option_name) for option_name in self.options])
         for option_name in self.options:
-            out_str += f'  {option_name}: {self.options[option_name]}\n'
+            pad = (max_len-len(option_name))*" "
+            out_str += f'  {option_name}:{pad} {self.options[option_name]}\n'
+        return out_str
+
+    def set_rf_settings(self, n_estimators=100, random_state=None):
+        settings = {"Nr. estimators": n_estimators,
+                    "Random state": random_state}
+        if not all(self.rf_settings[k] == settings[k] for k in settings.keys()):
+            self.rf_settings = {"Nr. estimators": n_estimators,
+                               "Random state": random_state}
+            if self.rf is not None and self.verbose:
+                print('Random Forest settings changed. Random Forest model has been reset.')
+            self.rf = None
+
+    def get_rf_settings(self):
+        out_str = ''
+        max_len = max([len(setting_name) for setting_name in self.rf_settings])
+        for setting_name in self.rf_settings:
+            pad = (max_len-len(setting_name))*" "
+            out_str += f'  {setting_name}:{pad} {self.rf_settings[setting_name]}\n'
         return out_str
 
     def add_extractor(self, extractor_name, extractor_func, extractor_cfg, num_pcs=False, smoothening=False, overwrite=False):
@@ -96,16 +120,24 @@ class SegBox:
         del self.extractors[extractor_name]
         if self.rf is not None and self.verbose:
             print('Removed and extractor. Random Forest model has been reset.')
-        self.rf = None   
+        self.rf = None
+
+    def get_extractor_info(self, extractor_name):
+        if not extractor_name in self.extractors:
+            raise ValueError('Extractor not found.')
+        out_str = f'{extractor_name}:\n'
+        out_str += f'  Function:    {self.extractors[extractor_name]["func"].__name__}\n'
+        out_str += f'  Config:      {self.extractors[extractor_name]["cfg"]}\n'
+        out_str += f'  Num PCs:     {self.extractors[extractor_name]["num_pcs"]}\n'
+        out_str += f'  Smoothening: {self.extractors[extractor_name]["smoothening"]}\n'
+        return out_str
 
     def get_extractors_infos(self):
+        if len(self.extractors) == 0:
+            return '  No extractors'
         out_str = ''
         for extractor_name in self.extractors:
-            out_str += f'{extractor_name}:\n'
-            out_str += f'  Function:    {self.extractors[extractor_name]["func"].__name__}\n'
-            out_str += f'  Config:      {self.extractors[extractor_name]["cfg"]}\n'
-            out_str += f'  Num PCs:     {self.extractors[extractor_name]["num_pcs"]}\n'
-            out_str += f'  Smoothening: {self.extractors[extractor_name]["smoothening"]}\n'
+            out_str += self.get_extractor_info(extractor_name)
         return out_str
 
     def extract_features_single_extractor(self, img, extractor_name):
@@ -131,39 +163,95 @@ class SegBox:
         for extractor_name in self.extractors:
             features_list.append(self.extract_features_single_extractor(img, extractor_name))
         features_combined = np.concatenate(features_list, axis=-1)
-        if self.options["img_as_feature"]:
+        if self.options["IMG as feature"]:
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=2)
             features_combined = np.dstack((features_combined, image))
         return features_combined
 
-    def rf_train(self, img, labels, n_estimators=100, random_state=None):
+    def rf_train(self, img, labels):
         feature_space = self.extract_features(img)
         features_annot, labels = get_features_targets(feature_space, labels)
-        self.rf = RandomForestClassifier(n_estimators=n_estimators,
-                                                 random_state=random_state)
+        self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
+                                         random_state=self.rf_settings["Random state"])
         self.rf.fit(features_annot, labels)
+    
+    def rf_train_batch(self, img_batch, labels_batch,
+                       print_progress=False):
+        test_img_labels_batch_shapes(img_batch, labels_batch)
+        # Extract features and targets for the entire batch (but only of the annotated images and pixels)
+        features_list = []
+        targets_list = []
+        i = 0
+        num_labelled = sum([np.any(labels) for labels in labels_batch])
+        t_start = time()
+        # Iterate over the images and their labels and extract features and targets for each annotated pixel
+        for image, labels in zip(img_batch, labels_batch):
+            if np.all(labels == 0):
+                continue
+            if print_progress:
+                est_t = f"{((time()-t_start)/(i))*(num_labelled-i):.1f} seconds" if i > 0 else "NA"
+                print(f'Extracting features for labels {i+1}/{num_labelled} - estimated time left: {est_t}')
+                i += 1
+            feature_space = self.extract_features(image)
+            features_annot, targets = get_features_targets(feature_space, labels)
+            features_list.append(features_annot)
+            targets_list.append(targets)
+        features_annot = np.concatenate(features_list)
+        targets = np.concatenate(targets_list)
+        # Train the random forest classifier
+        self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
+                                         random_state=self.rf_settings["Random state"])
+        self.rf.fit(features_annot, targets)
 
     def rf_predict(self, img):
+        if self.rf is None:
+            raise ValueError('Random Forest model not trained.')
         feature_space = self.extract_features(img)
         num_features = feature_space.shape[2]
         num_pix = img.shape[0]*img.shape[1]
         features = np.reshape(feature_space, (num_pix, num_features))
         predicted_labels = self.rf.predict(features)
         pred_img = np.reshape(predicted_labels, img.shape[:2])
-        pred_smoothening_factor = self.options["pred_smoothening"]
+        pred_smoothening_factor = self.options["Smoothen preds"]
         if pred_smoothening_factor:
             pred_img = filters.rank.majority(pred_img,
                                              footprint=morphology.disk(pred_smoothening_factor))
+        self.prediction_history.append(pred_img)
         return pred_img
+    
+    def rf_predict_batch(self, img_batch,
+                         print_progress=False):
+        if type(img_batch) is list:
+            img_batch = np.array(img_batch)
 
-    def rf_selfpredict(self, img, labels, n_estimators=100, random_state=None):
+        pred_batch = np.zeros(img_batch.shape[:3], dtype=np.uint8)
+        t_start = time()
+        for i, image in enumerate(img_batch):
+            if print_progress:
+                est_t = f"{((time()-t_start)/(i))*(len(img_batch)-i):.1f} seconds" if i > 0 else "NA"
+                print(f'Predicting image {i+1}/{len(img_batch)} - estimated time left: {est_t}')
+            pred_batch[i] = self.rf_predict(image)
+        self.prediction_history.append(pred_batch)
+        return pred_batch
+    
+    def rf_segment(self, train_img_batch, labels_batch, pred_img_batch=None,
+                   print_progress=False):
+        if pred_img_batch is None:
+            pred_img_batch = train_img_batch
+        self.rf_train_batch(train_img_batch, labels_batch,
+                            print_progress=print_progress)
+        pred_batch = self.rf_predict_batch(pred_img_batch,
+                                           print_progress=print_progress)
+        return pred_batch
+
+    def rf_selfpredict(self, img, labels):
         # Extract features
         feature_space = self.extract_features(img)
         # Train the random forest on the annotated pixels
         features_annot, labels = get_features_targets(feature_space, labels)
-        self.rf = RandomForestClassifier(n_estimators=n_estimators,
-                                                 random_state=random_state)
+        self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
+                                         random_state=self.rf_settings["Random state"])
         self.rf.fit(features_annot, labels)
         # Predict the labels for all pixels in the image
         num_features = feature_space.shape[2]
@@ -171,19 +259,20 @@ class SegBox:
         features = np.reshape(feature_space, (num_pix, num_features))
         predicted_labels = self.rf.predict(features)
         pred_img = np.reshape(predicted_labels, img.shape[:2])
-        pred_smoothening_factor = self.options["pred_smoothening"]
+        pred_smoothening_factor = self.options["Smoothen preds"]
         if pred_smoothening_factor:
             pred_img = filters.rank.majority(pred_img,
                                              footprint=morphology.disk(pred_smoothening_factor))
+        self.prediction_history.append(pred_img)
         return pred_img
 
     def get_kmeans(self, img, num_clusters):
         feature_space = self.extract_features(img)
         clusters = get_kmeans_clusters(feature_space, num_clusters)
+        self.prediction_history.append(clusters)
         return clusters
     
 
 # ToDo:
-#  - Batch training, prediciton and Segmentation
 #  - Classifier agnostic implementation
-#  - Add more classifiers
+#  - Add more different classifiers
