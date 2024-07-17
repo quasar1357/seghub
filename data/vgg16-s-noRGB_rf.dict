@@ -1,0 +1,3 @@
+{'PCs as features': False, 'IMG as feature': False, 'Smoothen preds': False}
+{'VGG16-small': {'func': <function get_vgg16_feature_space at 0x000001ED08A68E50>, 'cfg': {'layer_list': [0], 'scalings': [1, 2], 'rgb_if_possible': False}, 'num_pcs': False, 'smoothening': False}}
+{'Nr. estimators': 100, 'Random state': None}

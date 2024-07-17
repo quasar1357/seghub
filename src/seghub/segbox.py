@@ -2,6 +2,9 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from skimage import filters, morphology
 from time import time
+import joblib
+import yaml
+
 from seghub.util_funcs import test_img_labels_batch_shapes, reshape_patches_to_img, calculate_padding, get_features_targets
 from seghub.classif_utils import get_pca_features, get_kmeans_clusters
 
@@ -13,6 +16,7 @@ class SegBox:
         self.rf = None
         self.rf_settings = {"Nr. estimators":100, "Random state":None}
         self.prediction_history = []
+        self.adjusted = False
         self.verbose = verbose
 
     def __str__(self):
@@ -31,13 +35,15 @@ class SegBox:
         options = {"PCs as features": pcs_as_features,
                    "IMG as feature": img_as_feature,
                    "Smoothen preds": pred_smoothening}
-        if not all(self.options[k] == options[k] for k in options.keys()):
-            self.options = {"PCs as features": pcs_as_features,
-                            "IMG as feature": img_as_feature,
-                            "Smoothen preds": pred_smoothening}
-            if self.rf is not None and self.verbose:
-                print('Options changed. Random Forest model has been reset.')
-            self.rf = None
+        if all(self.options[k] == options[k] for k in options.keys()):
+            return
+        self.options = {"PCs as features": pcs_as_features,
+                        "IMG as feature": img_as_feature,
+                        "Smoothen preds": pred_smoothening}
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, options changed. Random Forest model might not be compatible anymore.')
 
     def get_options_infos(self):
         out_str = ''
@@ -50,12 +56,14 @@ class SegBox:
     def set_rf_settings(self, n_estimators=100, random_state=None):
         settings = {"Nr. estimators": n_estimators,
                     "Random state": random_state}
-        if not all(self.rf_settings[k] == settings[k] for k in settings.keys()):
-            self.rf_settings = {"Nr. estimators": n_estimators,
-                               "Random state": random_state}
-            if self.rf is not None and self.verbose:
-                print('Random Forest settings changed. Random Forest model has been reset.')
-            self.rf = None
+        if all(self.rf_settings[k] == settings[k] for k in settings.keys()):
+            return
+        self.rf_settings = {"Nr. estimators": n_estimators,
+                            "Random state": random_state}
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, Random Forest settings changed. Random Forest model might not be compatible anymore.')
 
     def get_rf_settings(self):
         out_str = ''
@@ -73,9 +81,10 @@ class SegBox:
                                            'cfg': extractor_cfg,
                                            'num_pcs': num_pcs,
                                            'smoothening': smoothening}
-        if self.rf is not None and self.verbose:
-            print('Added new feature extractor. Random Forest model has been reset.')
-        self.rf = None
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, added new feature extractor. Random Forest model might not be compatible anymore.')
 
     def add_extractors(self, extractors_dict):
         for extractor_name in extractors_dict:
@@ -93,34 +102,38 @@ class SegBox:
         if not extractor_name in self.extractors:
             raise ValueError('Extractor not found.')
         self.extractors[extractor_name]['func'] = extractor_func
-        if self.rf is not None and self.verbose:
-            print('Changed an extractor function. Random Forest model has been reset.')
-        self.rf = None
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, changed an extractor function. Random Forest model might not be compatible anymore.')
 
     def set_extractor_cfg(self, extractor_name, extractor_cfg):
         if not extractor_name in self.extractors:
             raise ValueError('Extractor not found.')
         self.extractors[extractor_name]['cfg'] = extractor_cfg
-        if self.rf is not None and self.verbose:
-            print('Changed an extractor config. Random Forest model has been reset.')
-        self.rf = None
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, changed an extractor config. Random Forest model might not be compatible anymore.')
 
     def set_extractor_options(self, extractor_name, num_pcs=0, smoothening=0):
         if not extractor_name in self.extractors:
             raise ValueError('Extractor not found.')
         self.extractors[extractor_name]['num_pcs'] = num_pcs
         self.extractors[extractor_name]['smoothening'] = smoothening
-        if self.rf is not None and self.verbose:
-            print('Changed extractor options. Random Forest model has been reset.')
-        self.rf = None   
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, changed extractor options. Random Forest model might not be compatible anymore.')
 
     def remove_extractor(self, extractor_name):
         if not extractor_name in self.extractors:
             raise ValueError('Extractor not found.')
         del self.extractors[extractor_name]
-        if self.rf is not None and self.verbose:
-            print('Removed and extractor. Random Forest model has been reset.')
-        self.rf = None
+        if self.rf is not None:
+            self.adjusted = True
+            if self.verbose:
+                print('Warning, removed and extractor. Random Forest model might not be compatible anymore.')
 
     def get_extractor_info(self, extractor_name):
         if not extractor_name in self.extractors:
@@ -163,6 +176,9 @@ class SegBox:
         for extractor_name in self.extractors:
             features_list.append(self.extract_features_single_extractor(img, extractor_name))
         features_combined = np.concatenate(features_list, axis=-1)
+        if self.options["PCs as features"]:
+            num_pcs = self.options["PCs as features"]
+            features_combined = get_pca_features(features_combined, num_pcs)
         if self.options["IMG as feature"]:
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=2)
@@ -175,6 +191,7 @@ class SegBox:
         self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
                                          random_state=self.rf_settings["Random state"])
         self.rf.fit(features_annot, labels)
+        self.adjusted = False
     
     def rf_train_batch(self, img_batch, labels_batch,
                        print_progress=False):
@@ -203,10 +220,13 @@ class SegBox:
         self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
                                          random_state=self.rf_settings["Random state"])
         self.rf.fit(features_annot, targets)
+        self.adjusted = False
 
     def rf_predict(self, img):
         if self.rf is None:
             raise ValueError('Random Forest model not trained.')
+        if self.adjusted and self.verbose:
+            print('Warning, model adjusted since training/loading. Consider retraining the model.')
         feature_space = self.extract_features(img)
         num_features = feature_space.shape[2]
         num_pix = img.shape[0]*img.shape[1]
@@ -224,7 +244,6 @@ class SegBox:
                          print_progress=False):
         if type(img_batch) is list:
             img_batch = np.array(img_batch)
-
         pred_batch = np.zeros(img_batch.shape[:3], dtype=np.uint8)
         t_start = time()
         for i, image in enumerate(img_batch):
@@ -253,6 +272,7 @@ class SegBox:
         self.rf = RandomForestClassifier(n_estimators=self.rf_settings["Nr. estimators"],
                                          random_state=self.rf_settings["Random state"])
         self.rf.fit(features_annot, labels)
+        self.adjusted = False
         # Predict the labels for all pixels in the image
         num_features = feature_space.shape[2]
         num_pix = img.shape[0]*img.shape[1]
@@ -265,6 +285,47 @@ class SegBox:
                                              footprint=morphology.disk(pred_smoothening_factor))
         self.prediction_history.append(pred_img)
         return pred_img
+    
+    def rf_save(self, filename):
+        if self.rf is None:
+            raise ValueError('No trained Random Forest model.')
+        joblib.dump(self.rf, filename+'.joblib')
+        data = [self.options, self.rf_settings, self.extractors]
+        with open(filename+'.yml', 'w') as file:
+            yaml.dump(data, file, default_flow_style=False)
+
+        # Save the options, extractors and RF settings
+        # with open(filename+'.txt', 'w') as f:
+        #     f.write(str(self))
+
+        # Save them also in a format more suited for loading
+        # with open(filename+'.dict', 'w') as f:
+        #     f.write(str(self.options)+'\n')
+        #     f.write(str(self.extractors)+'\n')
+        #     f.write(str(self.rf_settings))
+        
+    def rf_load(self, filename):
+        self.rf = joblib.load(filename+'.joblib')
+        with open(filename+'.yml', 'r') as file:
+            data = yaml.load(file, Loader=yaml.FullLoader)
+        self.options = data[0]
+        self.rf_settings = data[1]
+        self.extractors = data[2]
+
+        # with open(filename+'.txt', 'r') as f:
+        #     print("IMPORTANT: The loaded file was saved with the following settings, " +
+        #           "please assure that the current settings are compatible:\n")
+        #     print(f.read())
+
+        # Load the options, extractors and RF settings
+        # with open(filename+'.dict', 'r') as f:
+        #     options = f.readline()
+        #     extractors = f.readline()
+        #     rf_settings = f.readline()
+        # import ast
+        # self.options = ast.literal_eval(options)
+        # self.rf_settings = ast.literal_eval(rf_settings)
+        # self.extractors = ast.literal_eval(extractors)
 
     def get_kmeans(self, img, num_clusters):
         feature_space = self.extract_features(img)
@@ -274,5 +335,7 @@ class SegBox:
     
 
 # ToDo:
+#  - Optimize saving and loading
+#  - Use linter, add unit-tests etc.
 #  - Classifier agnostic implementation
 #  - Add more different classifiers

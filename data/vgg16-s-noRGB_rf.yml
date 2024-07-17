@@ -1,0 +1,16 @@
+- IMG as feature: false
+  PCs as features: false
+  Smoothen preds: false
+- VGG16-small:
+    cfg:
+      layer_list:
+      - 0
+      rgb_if_possible: false
+      scalings:
+      - 1
+      - 2
+    func: !!python/name:seghub.vgg16_utils.get_vgg16_feature_space ''
+    num_pcs: false
+    smoothening: false
+- Nr. estimators: 100
+  Random state: null
