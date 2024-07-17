@@ -3,4 +3,4 @@
 0.0.4	using only feature_space function for training (get features_annot and targets inside)
 0.0.5   dilution of features or preds, batch-to-batch pred func (segment_seg_forest)
 0.0.6   use feature_combinator function
-1.0.0   implement SegBox class
+0.1.0   implement SegBox class
