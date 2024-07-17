@@ -298,6 +298,7 @@ class SegBox:
         self.rf = joblib.load(filename+'.joblib')
         with open(filename+'.yml', 'r') as file:
             data = yaml.load(file, Loader=yaml.FullLoader)
+        print(data)
         self.options = data["options"]
         self.rf_settings = data["rf settings"]
         self.extractors = data["extractors"]
