@@ -1,7 +1,5 @@
-- IMG as feature: false
-  PCs as features: false
-  Smoothen preds: false
-- VGG16-small:
+extractors:
+  VGG16-small:
     cfg:
       layer_list:
       - 0
@@ -12,5 +10,10 @@
     func: !!python/name:seghub.vgg16_utils.get_vgg16_feature_space ''
     num_pcs: false
     smoothening: false
-- Nr. estimators: 100
+options:
+  IMG as feature: false
+  PCs as features: false
+  Smoothen preds: false
+rf settings:
+  Nr. estimators: 100
   Random state: null
