@@ -1,9 +1,10 @@
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from skimage import filters, morphology
+from time import time
 from seghub.util_funcs import test_img_labels_batch_shapes, reshape_patches_to_img, calculate_padding, get_features_targets
 from seghub.classif_utils import get_pca_features
-from sklearn.ensemble import RandomForestClassifier
-from time import time
-from skimage import filters, morphology
+
 
 def train_segforest(image_batch, labels_batch, features_func, features_cfg={}, print_steps=False, random_state=0,
                      pcs_as_features=False, feature_smoothness=False, img_as_feature=False):
