@@ -1,3 +1,4 @@
+import itertools
 from ilastik.napari.filters import (FilterSet,
                                     Gaussian,
                                     LaplacianOfGaussian,
@@ -5,7 +6,6 @@ from ilastik.napari.filters import (FilterSet,
                                     DifferenceOfGaussians,
                                     StructureTensorEigenvalues,
                                     HessianOfGaussianEigenvalues)
-import itertools
 import numpy as np
 from seghub.util_funcs import get_features_targets
 
@@ -41,7 +41,8 @@ def get_ila_feature_space(image, filter_set=FILTER_SET):
 
 def get_ila_features_multichannel(image, filter_set=FILTER_SET):
     """
-    Feature Extraction with Ilastik for multichannel images. Concatenates the feature maps of each channel.
+    Feature Extraction with Ilastik for multichannel images.
+    Concatenates the feature maps of each channel.
     INPUT:
         image (np.ndarray): image to predict on; shape (C, H, W) or (H, W, C)
         filter_set (FilterSet from ilastik.napari.filters): filter set to use for feature extraction
@@ -52,9 +53,9 @@ def get_ila_features_multichannel(image, filter_set=FILTER_SET):
     if len(image.shape) == 3 and image.shape[0] < 4:
         image = np.moveaxis(image, 0, -1)
     # Loop over channels, extract features and concatenate them
-    for c in range(image.data.shape[2]):
-        channel_feature_map = filter_set.transform(np.asarray(image[:,:,c]))
-        if c == 0:
+    for ch_idx in range(image.data.shape[2]):
+        channel_feature_map = filter_set.transform(np.asarray(image[:,:,ch_idx]))
+        if ch_idx == 0:
             feature_map = channel_feature_map
         else:
             feature_map = np.concatenate((feature_map, channel_feature_map), axis=2)

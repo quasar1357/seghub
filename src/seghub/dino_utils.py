@@ -1,9 +1,10 @@
 import numpy as np
-from skimage.transform import resize
 import torch
 from torchvision.transforms import ToTensor
 import timm
-from seghub.util_funcs import norm_for_imagenet, pad_to_patch, reshape_patches_to_img, get_features_targets, calculate_padding
+from seghub.util_funcs import (norm_for_imagenet,
+                               pad_to_patch, reshape_patches_to_img, calculate_padding,
+                               get_features_targets)
 from seghub.classif_utils import get_pca_features
 
 loaded_dinov2_models = {}
@@ -29,7 +30,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     Takes an RGB image and extracts features using a DINOv2 model.
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
-            Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
+            Expects H and W as multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
@@ -41,7 +42,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     '''
     if dinov2_model == 'uni':
         return extract_uni_features_rgb(image)
-    
+
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Define and load model
@@ -56,9 +57,14 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     dinov2_name = models[dinov2_model]
     if dinov2_name not in loaded_dinov2_models:
         try:
-            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2', dinov2_name, pretrained=True, verbose=False)
+            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2',
+                                                               dinov2_name, pretrained=True,
+                                                               verbose=False)
+        # The force_reload might be necessary for models with registers
         except RuntimeError:
-            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2', dinov2_name, pretrained=True, verbose=False, force_reload=True)
+            loaded_dinov2_models[dinov2_name] = torch.hub.load('facebookresearch/dinov2',
+                                                               dinov2_name, pretrained=True,
+                                                               verbose=False, force_reload=True)
     model = loaded_dinov2_models[dinov2_name]
     model.eval()
     # Extract features
@@ -76,7 +82,8 @@ def extract_uni_features_rgb(image):
     Takes an RGB image and extracts features using the UNI model (for pathology).
     NOTE: User must be logged in to huggingface and have access to the UNI model use:
             from huggingface_hub import login; login(hf_token)
-          where hf_token is your personal huggingface token found at https://huggingface.co/settings/tokens
+          where hf_token is your personal huggingface token found at
+            https://huggingface.co/settings/tokens
     INPUT:
         image (np.ndarray): RGB image. Shape (H, W, C) where C=3
             Expects H and W to be multiples of patch size (=16x16)
@@ -89,7 +96,8 @@ def extract_uni_features_rgb(image):
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Load model
-    model = timm.create_model("hf-hub:MahmoodLab/uni", pretrained=True, init_values=1e-5, dynamic_img_size=True)
+    model = timm.create_model("hf-hub:MahmoodLab/uni",
+                              pretrained=True, init_values=1e-5, dynamic_img_size=True)
     model.eval()
     # Make sure image is on same device as model
     device = next(model.parameters())[0].device
@@ -106,17 +114,19 @@ def extract_uni_features_rgb(image):
 def extract_features_multichannel(image, dinov2_model='s_r'):
     '''
     Takes an image with multiple channels and extracts features using a DINOv2 model.
-    Treats each channel as an RGB image (copying it for R, G and B), extracts features separately, and concatenates them.
+    Treats each channel as an RGB image (copying it for R, G and B), extracts features separately,
+    and concatenates them.
     INPUT:
         image (np.ndarray): image with multiple channels. Shape (H, W, C) or (H, W)
-            Expects H and W to be multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
+            Expects H and W as multiples of patch size (=14x14 for original DINOv2, 16x16 for UNI)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
         dinov2_model (str): model to use for feature extraction.
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
     OUTPUT:
-        features (np.ndarray): extracted features. Shape (H*W, F*C) where F is the number of features extracted per channel
+        features (np.ndarray): extracted features. Shape (H*W, F*C)
+                               where F is the number of features extracted per channel
     '''
-    # If image is single channel, stack it to have 3 dimensions (the last one being the single channel)
+    # If image is single channel, stack it to 3 dimensions (the last one being the single channel)
     if len(image.shape) == 2:
         image = np.stack((image,), axis=-1)
     # Extract features for each channel and concatenate them as separate features
@@ -130,11 +140,14 @@ def extract_features_multichannel(image, dinov2_model='s_r'):
     features = np.concatenate(features_list, axis=1)
     return features
 
-def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False):
+def get_dinov2_patch_features(image, dinov2_model='s_r',
+                              rgb_if_possible=True,
+                              pc_as_features=False):
     '''
-    Takes an image (padded to a multiple of patch size) and extracts features using a DINOv2 model.
+    Takes an image and extracts features using a DINOv2 model.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels)
+    and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -146,7 +159,7 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, p
                                where F is the number of features extracted
                                and Hp and Wp are the number of patches per height and width
     '''
-    patch_size = (14,14) if not dinov2_model == 'uni' else (16,16)
+    patch_size = (14,14) if dinov2_model != 'uni' else (16,16)
     padded_image = pad_to_patch(image, "bottom", "right", patch_size=patch_size)
     # If the image has 3 channels and RGB is chosen, extract features as usual
     if len(padded_image.shape) == 3 and padded_image.shape[2] == 3 and rgb_if_possible:
@@ -157,16 +170,19 @@ def get_dinov2_patch_features(image, dinov2_model='s_r', rgb_if_possible=True, p
         dinov2_features = extract_features_multichannel(padded_image, dinov2_model)
     # Apply PCA if chosen
     if pc_as_features:
-        dinov2_features = get_pca_features(dinov2_features, num_components=pc_as_features)    
+        dinov2_features = get_pca_features(dinov2_features, num_components=pc_as_features)
     return dinov2_features
 
-def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
+def get_dinov2_feature_space(image, dinov2_model='s_r',
+                             rgb_if_possible=True,
+                             pc_as_features=False,
+                             interpolate_features=False):
     '''
-    Takes an image (padded to a multiple of patch size),
-    extracts features using a DINOv2 model,
-    reshapes them to input image size.
+    Takes an image, extracts features using a DINOv2 model,
+    and reshapes them to input image shape/size.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels)
+    and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -174,24 +190,32 @@ def get_dinov2_feature_space(image, dinov2_model='s_r', rgb_if_possible=True, pc
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
         rgb_if_possible (bool): whether to treat a 3-channel image as RGB or not
     OUTPUT:
-        features (np.ndarray): extracted features. Shape (H, W, F) where F is the number of features extracted
+        features (np.ndarray): extracted features. Shape (H, W, F)
+                               where F is the number of features extracted
     '''
-    patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features)
+    patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model,
+                                                    rgb_if_possible=rgb_if_possible,
+                                                    pc_as_features=pc_as_features)
     # Recreate an image-sized feature space from the features
-    patch_size = (14,14) if not dinov2_model == 'uni' else (16,16)
+    patch_size = (14,14) if dinov2_model != 'uni' else (16,16)
     vertical_pad, horizontal_pad = calculate_padding(image.shape[:2], patch_size=patch_size)
     padded_img_shape = (image.shape[0] + vertical_pad, image.shape[1] + horizontal_pad)
-    feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape, patch_size=patch_size, interpolation_order=interpolate_features)
+    feature_space = reshape_patches_to_img(patch_features_flat, padded_img_shape,
+                                           patch_size=patch_size,
+                                           interpolation_order=interpolate_features)
     feature_space_recrop = feature_space[:image.shape[0], :image.shape[1]]
     return feature_space_recrop
 
-def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
+def get_dinov2_pixel_features(image, dinov2_model='s_r',
+                              rgb_if_possible=True,
+                              pc_as_features=False,
+                              interpolate_features=False):
     '''
-    Takes an image (padded to a multiple of patch size),
-    extracts features using a DINOv2 model,
-    reshapes them to per-pixel level.
+    Takes an image, extracts features using a DINOv2 model,
+    and reshapes them to per-pixel level.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels)
+    and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -199,21 +223,30 @@ def get_dinov2_pixel_features(image, dinov2_model='s_r', rgb_if_possible=True, p
             Options: 's', 'b', 'l', 'g', 's_r', 'b_r', 'l_r', 'g_r' (r = registers)
         rgb_if_possible (bool): whether to treat a 3-channel image as RGB or not
     OUTPUT:
-        features (np.ndarray): extracted features. Shape (H*W, F) where F is the number of features extracted
+        features (np.ndarray): extracted features. Shape (H*W, F)
+                               where F is the number of features extracted
     '''
-    feature_space = get_dinov2_feature_space(image, dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features, interpolate_features=interpolate_features)
-    # Flatten the spatial dimensions (keeping the features in the last dimension) --> per pixel features
+    feature_space = get_dinov2_feature_space(image, dinov2_model=dinov2_model,
+                                             rgb_if_possible=rgb_if_possible,
+                                             pc_as_features=pc_as_features,
+                                             interpolate_features=interpolate_features)
+    # Flatten the spatial dimensions (keeping the features in the last dimension)
+    # --> per pixel features
     num_pix = image.shape[0] * image.shape[1]
     num_features = feature_space.shape[2]
     pixel_features_flat = np.reshape(feature_space, (num_pix, num_features))
     return pixel_features_flat
 
-def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possible=True, pc_as_features=False, interpolate_features=False):
+def get_dinov2_features_targets(image, labels, dinov2_model='s_r',
+                                rgb_if_possible=True,
+                                pc_as_features=False,
+                                interpolate_features=False):
     '''
     Takes an image and labels, extracts features using a DINOv2 model,
     and returns the features of annotated pixels and their targets.
     If the image has 3 channels and RGB is chosen, extract features as usual.
-    Otherwise extract features for each channel (triplicated for the 3 color channels) and concatenate them.
+    Otherwise extract features for each channel (triplicated for the 3 color channels)
+    and concatenate them.
     INPUT:
         image (np.ndarray): image. Shape (H, W, C) or (H, W)
             Expects the image to be in the range [0, 1]; will normalize to ImageNet stats
@@ -226,7 +259,9 @@ def get_dinov2_features_targets(image, labels, dinov2_model='s_r', rgb_if_possib
         features_annot (np.ndarray): features of annotated pixels. Shape (n_annotated, F)
         targets (np.ndarray): targets of annotated pixels. Shape (n_annotated)
     '''
-    feature_space = get_dinov2_feature_space(image,
-                                             dinov2_model=dinov2_model, rgb_if_possible=rgb_if_possible, pc_as_features=pc_as_features, interpolate_features=interpolate_features)
+    feature_space = get_dinov2_feature_space(image, dinov2_model=dinov2_model,
+                                             rgb_if_possible=rgb_if_possible,
+                                             pc_as_features=pc_as_features,
+                                             interpolate_features=interpolate_features)
     features_annot, targets = get_features_targets(feature_space, labels)
     return features_annot, targets
