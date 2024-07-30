@@ -235,7 +235,7 @@ class SegBox:
         '''
         features_list = []
         for extractor_name in self.extractors:
-            features_list.append(self.extract_features_single_extractor(image, extractor_name))
+            features_list.append(self.extract_features_single_extractor(img, extractor_name))
         features_combined = np.concatenate(features_list, axis=-1)
         if self.options["PCs as features"]:
             num_pcs = self.options["PCs as features"]
