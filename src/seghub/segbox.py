@@ -229,21 +229,21 @@ class SegBox:
             feature_space = np.moveaxis(feature_space, 0, 2)
         return feature_space
 
-    def extract_features(self, image):
+    def extract_features(self, img):
         '''
         Extract features using the specified extractor(s) on an image.
         '''
         features_list = []
         for extractor_name in self.extractors:
-            features_list.append(self.extract_features_single_extractor(img, extractor_name))
+            features_list.append(self.extract_features_single_extractor(image, extractor_name))
         features_combined = np.concatenate(features_list, axis=-1)
         if self.options["PCs as features"]:
             num_pcs = self.options["PCs as features"]
             features_combined = get_pca_features(features_combined, num_pcs)
         if self.options["IMG as feature"]:
-            if len(image.shape) == 2:
-                image = np.expand_dims(image, axis=2)
-            features_combined = np.dstack((features_combined, image))
+            if len(img.shape) == 2:
+                img = np.expand_dims(img, axis=2)
+            features_combined = np.dstack((features_combined, img))
         return features_combined
 
     def rf_train(self, img, labels):
@@ -272,7 +272,7 @@ class SegBox:
         num_labelled = sum(np.any(labels) for labels in labels_batch)
         t_start = time()
         # Iterate over images and their labels; extract features & targets for each annotated pixel
-        for image, labels in zip(img_batch, labels_batch):
+        for img, labels in zip(img_batch, labels_batch):
             if np.all(labels == 0):
                 continue
             if print_progress:
@@ -283,7 +283,7 @@ class SegBox:
                 print(f'Extracting features for labels {i+1}/{num_labelled} ' +
                       f'- estimated time left: {est_t}')
                 i += 1
-            feature_space = self.extract_features(image)
+            feature_space = self.extract_features(img)
             features_annot, targets = get_features_targets(feature_space, labels)
             features_list.append(features_annot)
             targets_list.append(targets)
@@ -325,14 +325,14 @@ class SegBox:
             img_batch = np.array(img_batch)
         pred_batch = np.zeros(img_batch.shape[:3], dtype=np.uint8)
         t_start = time()
-        for i, image in enumerate(img_batch):
+        for i, img in enumerate(img_batch):
             if print_progress:
                 if i == 0:
                     est_t = "NA"
                 else:
                     est_t = f"{((time()-t_start)/(i))*(len(img_batch)-i):.1f} seconds"
                 print(f'Predicting image {i+1}/{len(img_batch)} - estimated time left: {est_t}')
-            pred_batch[i] = self.rf_predict(image)
+            pred_batch[i] = self.rf_predict(img)
         self.prediction_history.append(pred_batch)
         return pred_batch
 
