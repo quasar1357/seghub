@@ -229,7 +229,7 @@ class SegBox:
             feature_space = np.moveaxis(feature_space, 0, 2)
         return feature_space
 
-    def extract_features(self, img):
+    def extract_features(self, image):
         '''
         Extract features using the specified extractor(s) on an image.
         '''
