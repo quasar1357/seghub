@@ -211,6 +211,7 @@ def get_dinov2_feature_space(image, dinov2_model='s_r',
         features (np.ndarray): extracted features. Shape (H, W, F)
                                where F is the number of features extracted
     '''
+    print("If not here, then something is wrong")
     patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model,
                                                     rgb_if_possible=rgb_if_possible,
                                                     pc_as_features=pc_as_features)
