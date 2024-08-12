@@ -7,6 +7,7 @@ from seghub.util_funcs import (norm_for_imagenet,
                                pad_to_patch, reshape_patches_to_img, calculate_padding,
                                get_features_targets)
 from seghub.classif_utils import get_pca_features
+from huggingface_hub import hf_hub_download
 
 loaded_dinov2_models = {}
 
@@ -78,7 +79,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     features = features[0]
     return features
 
-def extract_uni_features_rgb(image, local_dir=None):
+def extract_uni_features_rgb(image):
     '''
     Takes an RGB image and extracts features using the UNI model (for pathology).
     NOTE: User must be logged in to huggingface and have access to the UNI model use:
@@ -97,15 +98,21 @@ def extract_uni_features_rgb(image, local_dir=None):
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Load model
-    # model = timm.create_model("hf-hub:MahmoodLab/uni",
-    #                           pretrained=True, init_values=1e-5, dynamic_img_size=True)
-    model = timm.create_model(
-        "vit_large_patch16_224", img_size=224, patch_size=16,
-        init_values=1e-5, num_classes=0, dynamic_img_size=True
-    )
-    model.load_state_dict(
-        torch.load(os.path.join(local_dir, "pytorch_model.bin"), map_location="cpu"),
-        strict=True)
+
+    if 'uni' not in loaded_dinov2_models:
+        # Define the model
+        loaded_dinov2_models['uni'] = timm.create_model(
+            "vit_large_patch16_224", img_size=224, patch_size=16,
+            init_values=1e-5, num_classes=0, dynamic_img_size=True
+        )
+        try:
+            model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=False)
+            loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+        # The force_download might be necessary if the model is not found in the cache
+        except RuntimeError:
+            model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=True)
+            loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+    model = loaded_dinov2_models['uni']
     model.eval()
     # Make sure image is on same device as model
     device = next(model.parameters())[0].device
