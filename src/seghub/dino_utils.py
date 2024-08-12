@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import torch
 from torchvision.transforms import ToTensor
@@ -7,7 +6,7 @@ from seghub.util_funcs import (norm_for_imagenet,
                                pad_to_patch, reshape_patches_to_img, calculate_padding,
                                get_features_targets)
 from seghub.classif_utils import get_pca_features
-from huggingface_hub import hf_hub_download
+# from huggingface_hub import hf_hub_download
 
 loaded_dinov2_models = {}
 
@@ -98,24 +97,24 @@ def extract_uni_features_rgb(image):
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Load model
-    print("HEEEEERRRREEEEE!!!!!!!!")
-
-    if 'uni' not in loaded_dinov2_models:
-        # Define the model
-        loaded_dinov2_models['uni'] = timm.create_model(
-            "vit_large_patch16_224", img_size=224, patch_size=16,
-            init_values=1e-5, num_classes=0, dynamic_img_size=True
-        )
-        try:
-            model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=False)
-            loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
-            print("Model loaded from cache")
-        # The force_download might be necessary if the model is not found in the cache
-        except RuntimeError:
-            model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=True)
-            loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
-            print("Model loaded from huggingface")
-    model = loaded_dinov2_models['uni']
+    if 'uni' in loaded_dinov2_models:
+        model = loaded_dinov2_models['uni']
+    else:
+        model = timm.create_model("hf-hub:MahmoodLab/uni",
+                                  pretrained=True, init_values=1e-5, dynamic_img_size=True)
+        # To download the model weights to a specified checkpoint location
+        # model = timm.create_model(
+        #     "vit_large_patch16_224", img_size=224, patch_size=16,
+        #     init_values=1e-5, num_classes=0, dynamic_img_size=True
+        # )
+        # try:
+        #     model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=True)
+        #     model.load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+        # # The force_download might be necessary if the model is not found in the cache
+        # except RuntimeError:
+        #     model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=True)
+        #     model.load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+        loaded_dinov2_models['uni'] = model
     model.eval()
     # Make sure image is on same device as model
     device = next(model.parameters())[0].device
@@ -211,7 +210,6 @@ def get_dinov2_feature_space(image, dinov2_model='s_r',
         features (np.ndarray): extracted features. Shape (H, W, F)
                                where F is the number of features extracted
     '''
-    print("If not here, then something is wrong")
     patch_features_flat = get_dinov2_patch_features(image, dinov2_model=dinov2_model,
                                                     rgb_if_possible=rgb_if_possible,
                                                     pc_as_features=pc_as_features)
