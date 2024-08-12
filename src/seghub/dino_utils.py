@@ -98,6 +98,7 @@ def extract_uni_features_rgb(image):
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Load model
+    print("HEEEEERRRREEEEE!!!!!!!!")
 
     if 'uni' not in loaded_dinov2_models:
         # Define the model
@@ -108,10 +109,12 @@ def extract_uni_features_rgb(image):
         try:
             model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=False)
             loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+            print("Model loaded from cache")
         # The force_download might be necessary if the model is not found in the cache
         except RuntimeError:
             model_file = hf_hub_download("MahmoodLab/UNI", filename="pytorch_model.bin", force_download=True)
             loaded_dinov2_models['uni'].load_state_dict(torch.load(model_file, map_location="cpu"), strict=True)
+            print("Model loaded from huggingface")
     model = loaded_dinov2_models['uni']
     model.eval()
     # Make sure image is on same device as model
