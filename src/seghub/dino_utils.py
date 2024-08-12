@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from torchvision.transforms import ToTensor
@@ -77,7 +78,7 @@ def extract_features_rgb(image, dinov2_model='s_r'):
     features = features[0]
     return features
 
-def extract_uni_features_rgb(image):
+def extract_uni_features_rgb(image, local_dir=None):
     '''
     Takes an RGB image and extracts features using the UNI model (for pathology).
     NOTE: User must be logged in to huggingface and have access to the UNI model use:
@@ -96,8 +97,15 @@ def extract_uni_features_rgb(image):
     # Preprocess image
     image_batch = preprocess_for_dinov2(image)
     # Load model
-    model = timm.create_model("hf-hub:MahmoodLab/uni",
-                              pretrained=True, init_values=1e-5, dynamic_img_size=True)
+    # model = timm.create_model("hf-hub:MahmoodLab/uni",
+    #                           pretrained=True, init_values=1e-5, dynamic_img_size=True)
+    model = timm.create_model(
+        "vit_large_patch16_224", img_size=224, patch_size=16,
+        init_values=1e-5, num_classes=0, dynamic_img_size=True
+    )
+    model.load_state_dict(
+        torch.load(os.path.join(local_dir, "pytorch_model.bin"), map_location="cpu"),
+        strict=True)
     model.eval()
     # Make sure image is on same device as model
     device = next(model.parameters())[0].device
