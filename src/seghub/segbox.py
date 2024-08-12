@@ -233,17 +233,24 @@ class SegBox:
         '''
         Extract features using the specified extractor(s) on an image.
         '''
-        features_list = []
-        for extractor_name in self.extractors:
-            features_list.append(self.extract_features_single_extractor(img, extractor_name))
-        features_combined = np.concatenate(features_list, axis=-1)
+        # features_list = []
+        # for extractor_name in self.extractors:
+        #     features_list.append(self.extract_features_single_extractor(img, extractor_name))
+        # features_combined = np.concatenate(features_list, axis=-1)
+        features_list = [self.extract_features_single_extractor(img, extractor_name)
+                         for extractor_name in self.extractors
+                         if self.extractors]
         if self.options["PCs as features"]:
             num_pcs = self.options["PCs as features"]
-            features_combined = get_pca_features(features_combined, num_pcs)
+            pca_features = get_pca_features(features_combined, num_pcs)
+        else:
+            pca_features = []
         if self.options["IMG as feature"]:
             if len(img.shape) == 2:
                 img = np.expand_dims(img, axis=2)
-            features_combined = np.dstack((features_combined, img))
+        else:
+            img = []
+        features_combined = np.concatenate([pca_features] + features_list + [img], axis=-1)
         return features_combined
 
     def rf_train(self, img, labels):

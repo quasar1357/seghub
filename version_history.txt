@@ -5,3 +5,4 @@
 0.0.6   use feature_combinator function
 0.1.0   implement SegBox class
 0.1.1   working save/load functionalities
+0.1.2   adjust feature creation with pca and image_as_features
