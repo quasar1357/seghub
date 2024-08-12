@@ -238,6 +238,7 @@ class SegBox:
                          if self.extractors]
         if self.options["PCs as features"]:
             num_pcs = self.options["PCs as features"]
+            features_combined = np.concatenate(features_list, axis=-1)
             pca_features = get_pca_features(features_combined, num_pcs)
             # append the pca features in front so they can easily be accessed if needed
             features_list = [pca_features] + features_list
