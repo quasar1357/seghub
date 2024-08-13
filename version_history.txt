@@ -7,3 +7,4 @@
 0.1.1   working save/load functionalities
 0.1.2   adjust feature creation with pca and image_as_features
 0.1.3   adjust UNI feature extraction so it actually uses pretrained weights
+0.1.4   add feature extraction using custom dinov2 models from a pth file

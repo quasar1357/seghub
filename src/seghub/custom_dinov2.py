@@ -1,5 +1,4 @@
 from seghub import dino_utils
-import os
 import numpy as np
 import torch
 import dinov2.models.vision_transformer as vits
