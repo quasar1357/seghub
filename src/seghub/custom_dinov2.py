@@ -5,13 +5,15 @@ import dinov2.models.vision_transformer as vits
 from seghub.util_funcs import pad_to_patch, reshape_patches_to_img, calculate_padding
 
 
-def load_model(teacher_pth_path, device="cuda"):
+def load_model(teacher_pth_path, device="cuda", load_weights=True):
     # Read in and process the teacher model state_dict
     state_dict = torch.load(teacher_pth_path, map_location="cpu")["teacher"]
     state_dict = {key: val for key, val in state_dict.items() if "backbone" in key}
     state_dict = {key.replace("backbone.", ""): val for key, val in state_dict.items()}
     model = guess_model(state_dict)
-    model.load_state_dict(state_dict, strict=True)
+    # Allows to load an empty model with the same architecture as the teacher
+    if load_weights:
+        model.load_state_dict(state_dict, strict=True)
     model.eval()
     model = model.to(device)
     return model
@@ -48,10 +50,11 @@ def extract_features(image, model, device="cuda"):
     return features
 
 def get_custom_dinov2_feature_space(image, teacher_pth_path,
-                                    device="cuda", interpolate_features=False):
-    model = load_model(teacher_pth_path, device)
+                                    device="cuda", interpolate_features=False,
+                                    load_weights=True):
+    model = load_model(teacher_pth_path, device, load_weights=load_weights)
     patch_w = model.patch_size
-    patch_size=(patch_w,patch_w)
+    patch_size=(patch_w, patch_w)
     padded_image = pad_to_patch(image, "bottom", "right", patch_size=patch_size)
     patch_features_flat = extract_features(padded_image, model, device)
     # Recreate an image-sized feature space from the features
