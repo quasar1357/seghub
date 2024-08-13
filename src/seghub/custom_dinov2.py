@@ -18,9 +18,9 @@ def load_model(teacher_pth_path, device="cuda"):
     return model
 
 def guess_model(state_dict):
-    patch_w = state_dict['backbone.patch_embed.proj.weight'].shape[-1]
-    global_crops_size = int(np.sqrt(state_dict['backbone.pos_embed'].shape[1]-1)) * patch_w
-    embed_size = state_dict['backbone.pos_embed'].shape[-1]
+    patch_w = state_dict['patch_embed.proj.weight'].shape[-1]
+    global_crops_size = int(np.sqrt(state_dict['pos_embed'].shape[1]-1)) * patch_w
+    embed_size = state_dict['pos_embed'].shape[-1]
     embed_arch_dict = {384: "vit_small", 768: "vit_base", 1024: "vit_large", 1536: "vit_giant2"}
     arch = embed_arch_dict[embed_size]
     vit_kwargs = dict(
