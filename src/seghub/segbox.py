@@ -33,9 +33,9 @@ class SegBox:
         out_str += self.get_extractors_infos()
         return out_str
 
-    def set_options(self, pcs_as_features=False,
-                          img_as_feature=False,
-                          pred_smoothening=False):
+    def set_options(self, pcs_as_features=None,
+                          img_as_feature=None,
+                          pred_smoothening=None):
         '''
         Set general options for the SegBox,
         such as using principal components as features or smoothening predictions.
@@ -43,11 +43,12 @@ class SegBox:
         options = {"PCs as features": pcs_as_features,
                    "IMG as feature": img_as_feature,
                    "Smoothen preds": pred_smoothening}
+        for k, v in options.items():
+            if v is None:
+                options[k] = self.options[k]
         if all(self.options[k] == options[k] for k in options.keys()):
             return
-        self.options = {"PCs as features": pcs_as_features,
-                        "IMG as feature": img_as_feature,
-                        "Smoothen preds": pred_smoothening}
+        self.options = options
         if self.random_forest is not None:
             self.adjusted = True
             if self.verbose:
